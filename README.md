@@ -66,4 +66,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ---
 
-> Built with ❤️ using Umbraco CMS and .NET 8.
+> Built with ❤️ using Umbraco CMS and .NET 8. 
