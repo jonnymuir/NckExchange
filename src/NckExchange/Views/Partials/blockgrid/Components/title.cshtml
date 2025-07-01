@@ -1,0 +1,14 @@
+﻿@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.Title>>
+
+@{
+    var text_colour_class = Model.Content.Colour != null ? "text-" + Model.Content.Colour.Label.ToLower() : "secondary";
+    var divider_colour_class = Model.Content.Colour != null && Model.Content.Colour.Label == "White" ? "divider-light" : null;
+}
+
+<h2 class="page-section-heading text-center text-uppercase @(text_colour_class) mb-0">@Model.Content.Text</h2>
+<!-- Icon Divider-->
+<div class="divider-custom @(divider_colour_class)">
+    <div class="divider-custom-line"></div>
+    <div class="divider-custom-icon"><i class="fas fa-star"></i></div>
+    <div class="divider-custom-line"></div>
+</div>
