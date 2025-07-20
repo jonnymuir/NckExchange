@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": ".NET Core Launch (web)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build", 
+            "program": "${workspaceFolder}/src/NckExchange/bin/Debug/net8.0/NckExchange.dll", 
+            "args": [],
+            "cwd": "${workspaceFolder}/src/NckExchange", 
+            "stopAtEntry": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s/umbraco" 
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "Umbraco__Storage__AzureBlob__Media__ContainerName": "umbracomedia",
+                "Umbraco__Storage__AzureBlob__Media__ShareFiles": "true",
+                "Umbraco__Storage__AzureBlob__Media__UseCdn": "false",
+                "Umbraco__Storage__AzureBlob__ImageSharpCache__ContainerName": "imagesharp-cache"
+            },
+            "justMyCode": true
+        }
+    ]
+}
