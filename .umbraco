@@ -1,3 +1,0 @@
-[project]
-base = "src/NckExchange"
-csproj = "NckExchange.csproj"
