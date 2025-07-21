@@ -477,3 +477,7 @@ appsettings-schema.*.json
 **/umbraco/Logs/
 
 **/git-patch.diff
+
+
+# Media files
+**/wwwroot/media/

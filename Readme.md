@@ -61,6 +61,12 @@ User secrets are stored outside your project and are not committed to git, keepi
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
+## Publish
+
+```
+dotnet publish -c Release -o "..\..\publish" --no-self-contained
+```
+
 ## License
 [MIT](LICENSE)
 
