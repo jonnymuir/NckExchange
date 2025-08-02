@@ -38,8 +38,8 @@ jobs:
               umbracoDbDSN = "${{ secrets.UMBRACO_DB_DSN }}"
               umbracoDbDSN_ProviderName = "Microsoft.Data.SqlClient"
           }
-          # Convert the hashtable back to JSON and save it
-          $json | ConvertTo-Json | Set-Content 'publish/appsettings.json'
+          # To fix the 'serialization has exceeded the set depth' warning, we increase the depth.
+          $json | ConvertTo-Json -Depth 4 | Set-Content 'publish/appsettings.json'
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -62,17 +62,12 @@ jobs:
           path: ./app_publish
 
       - name: SFTP Upload to Fasthosts
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        # This action is specifically for SFTP deployment
+        # The previous action only supported FTP/FTPS, which caused the connection failure
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
         with:
-          server: ${{ secrets.SFTP_HOST }}
           username: ${{ secrets.SFTP_USERNAME }}
+          server: ${{ secrets.SFTP_HOST }}
           password: ${{ secrets.SFTP_PASSWORD }}
-          local-dir: './app_publish/'
-          remote-dir: '/htdocs/'
-          # Optional: Exclude files that don't need to be uploaded
-          exclude: |
-            .git*
-            .git*/**
-            .gitignore
-            *.yml
-            *.yml/**
+          local_path: './app_publish/'
+          remote_path: '/htdocs/'
