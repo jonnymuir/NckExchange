@@ -1,4 +1,4 @@
-﻿@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.Title>>
+﻿@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.Title>>
 
 @{
     var text_colour_class = Model.Content.Colour != null ? "text-" + Model.Content.Colour.Label.ToLower() : "secondary";
