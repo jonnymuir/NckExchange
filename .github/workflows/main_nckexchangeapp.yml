@@ -1,7 +1,6 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
+# Docs for the GitHub Actions SFTP Deploy action: https://github.com/marketplace/actions/sftp-deploy
 
-name: Build and deploy ASP.Net Core app to Azure Web App - NckExchangeApp
+name: Build and Deploy Umbraco App to Fasthosts
 
 on:
   push:
@@ -13,7 +12,7 @@ jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -27,39 +26,83 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: dotnet publish -c Release -o "publish" --no-self-contained
+
+      - name: Create appsettings.json for Production
+        run: |
+          # The Windows runner uses PowerShell, so we need to use a different syntax for JSON manipulation
+          # We'll use a script to replace the connection string in the published file.
+          $json = Get-Content 'publish/appsettings.json' | Out-String | ConvertFrom-Json
+          $json.ConnectionStrings = @{
+              umbracoDbDSN = "${{ secrets.UMBRACO_DB_DSN }}"
+              umbracoDbDSN_ProviderName = "Microsoft.Data.SqlClient"
+          }
+          $json | ConvertTo-Json | Set-Content 'publish/appsettings.json'
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: publish
 
   deploy:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     needs: build
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write
+      contents: read
 
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: .net-app
-      
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_298DCE90E250430EA88F6A691F7C4592 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_6A020914D7114E66AB389E80A8EDB7F9 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_A44D4111E40A445E9F7EF510A7F3D931 }}
+          path: ./app_publish
 
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
+      - name: Deploy to Fasthosts via SFTP
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          app-name: 'NckExchangeApp'
-          slot-name: 'Production'
-          package: .
-          
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          script: |
+            # Clear the htdocs folder before uploading
+            rm -rf /htdocs/*
+
+      - name: SFTP Upload to Fasthosts
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          local-dir: './app_publish/'
+          remote-dir: '/htdocs/'
+          # Optional: Exclude files that don't need to be uploaded
+          exclude: |
+            .git*
+            .git*/**
+            .gitignore
+            *.yml
+            *.yml/**
+
+      # Optional, but highly recommended, to run uSync after deployment
+      - name: Run uSync on the remote server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          script: |
+            # Navigate to the htdocs directory
+            cd /htdocs/
+            
+            # The dotnet CLI tool needs to be installed on the Fasthosts server
+            # This command might be different depending on your server's setup.
+            # You'll need to make sure the uSync.Cli tool is installed on the server
+            
+            # Example for running a uSync import (you will need to verify the exact command)
+            # You may also need to provide credentials if uSync commands are locked down.
+            # Refer to uSync documentation for the correct remote command.
+            # e.g., dotnet uSync run usync-import -p groups=all
+            
+            echo "uSync command goes here."
