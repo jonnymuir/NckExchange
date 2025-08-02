@@ -61,16 +61,6 @@ jobs:
           name: .net-app
           path: ./app_publish
 
-      - name: Deploy to Fasthosts via SFTP
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SFTP_HOST }}
-          username: ${{ secrets.SFTP_USERNAME }}
-          password: ${{ secrets.SFTP_PASSWORD }}
-          script: |
-            # Clear the htdocs folder before uploading
-            rm -rf /htdocs/*
-
       - name: SFTP Upload to Fasthosts
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -86,25 +76,3 @@ jobs:
             .gitignore
             *.yml
             *.yml/**
-
-      # Optional, but highly recommended, to run uSync after deployment
-      - name: Run uSync on the remote server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SFTP_HOST }}
-          username: ${{ secrets.SFTP_USERNAME }}
-          password: ${{ secrets.SFTP_PASSWORD }}
-          script: |
-            # Navigate to the htdocs directory
-            cd /htdocs/
-            
-            # The dotnet CLI tool needs to be installed on the Fasthosts server
-            # This command might be different depending on your server's setup.
-            # You'll need to make sure the uSync.Cli tool is installed on the server
-            
-            # Example for running a uSync import (you will need to verify the exact command)
-            # You may also need to provide credentials if uSync commands are locked down.
-            # Refer to uSync documentation for the correct remote command.
-            # e.g., dotnet uSync run usync-import -p groups=all
-            
-            echo "uSync command goes here."
