@@ -73,7 +73,7 @@ jobs:
         with:
           username: ${{ secrets.SFTP_USERNAME }}
           server: ${{ secrets.SFTP_HOST }}
-          # The SSH private key is now used for authentication.
-          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          sftp_only: true
+          password: ${{ secrets.SFTP_PASSWORD }}
           local_path: './app_publish/'
           remote_path: '/htdocs/'
