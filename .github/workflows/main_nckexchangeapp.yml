@@ -30,13 +30,15 @@ jobs:
 
       - name: Create appsettings.json for Production
         run: |
-          # The Windows runner uses PowerShell, so we need to use a different syntax for JSON manipulation
-          # We'll use a script to replace the connection string in the published file.
-          $json = Get-Content 'publish/appsettings.json' | Out-String | ConvertFrom-Json
+          # The Windows runner uses PowerShell.
+          # We read the JSON file into a mutable hashtable to safely add or replace the section.
+          # This avoids the error where the 'ConnectionStrings' property is not found initially.
+          $json = Get-Content 'publish/appsettings.json' | Out-String | ConvertFrom-Json -AsHashtable
           $json.ConnectionStrings = @{
               umbracoDbDSN = "${{ secrets.UMBRACO_DB_DSN }}"
               umbracoDbDSN_ProviderName = "Microsoft.Data.SqlClient"
           }
+          # Convert the hashtable back to JSON and save it
           $json | ConvertTo-Json | Set-Content 'publish/appsettings.json'
 
       - name: Upload artifact for deployment job
