@@ -66,6 +66,8 @@ jobs:
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # The passphrase for the private key is now provided directly.
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
       
       - name: SFTP Upload to Fasthosts
         # Using SSH key-based authentication, which is more reliable for automation.
