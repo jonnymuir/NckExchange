@@ -84,27 +84,42 @@ runs:
         # This script compares the local and remote checksums and generates a series of
         # lftp commands for pushing, removing, and updating files.
         
-        # Create a file to store the lftp commands
-        touch lftp_commands.txt
+        # Sort both checksum files to enable efficient comparison with `join`
+        sort -k 2,2 local_checksums.txt > local_sorted.txt
+        sort -k 2,2 remote_checksums.txt > remote_sorted.txt
         
-        # Add files to be pushed (new or modified)
-        while read -r local_checksum local_file; do
-          if ! grep -q "$local_checksum  $local_file" remote_checksums.txt; then
-            # File is new or has a different checksum. We need to push it.
-            # We also need to get the directory path for the file to ensure it exists.
-            local_dir="$(dirname "$local_file")"
-            echo "mkdir -p \"${{ inputs.remote-path }}/$local_dir\";" >> lftp_commands.txt
-            echo "put \"$local_file\" -o \"${{ inputs.remote-path }}/$local_file\";" >> lftp_commands.txt
-          fi
-        done < local_checksums.txt
+        # Create a file to store the lftp commands
+        echo "# lftp commands generated for deployment" > lftp_commands.txt
+        
+        # Find files that are new or have a different checksum (in local but not remote, or different checksums)
+        # Use `join` to find unique files in local_sorted.txt. `-v 1` prints lines from file 1 (local) that have no match in file 2 (remote).
+        # We then pipe the output to a while loop to generate the commands.
+        join -v 1 local_sorted.txt remote_sorted.txt | while read -r checksum file; do
+          # The file is new or modified. We need to push it.
+          local_file="${{ inputs.local-path }}/$file"
+          remote_file="${{ inputs.remote-path }}/$file"
+          # Ensure the remote directory exists
+          echo "mkdir -p \"$(dirname \"$remote_file\")\";" >> lftp_commands.txt
+          echo "put \"$local_file\" -o \"$remote_file\";" >> lftp_commands.txt
+        done
 
-        # Add files to be removed
-        while read -r remote_checksum remote_file; do
-          if ! grep -q "$remote_checksum  $remote_file" local_checksums.txt; then
-            # File is in the remote but not the local. We need to remove it.
-            echo "rm \"${{ inputs.remote-path }}/$remote_file\";" >> lftp_commands.txt
+        # Find files that are no longer in the local directory (only in remote)
+        # Use `join -v 2` to find files that exist only in remote_sorted.txt.
+        join -v 2 remote_sorted.txt local_sorted.txt | while read -r checksum file; do
+          # The file is no longer needed. We need to remove it.
+          echo "rm \"${{ inputs.remote-path }}/$file\";" >> lftp_commands.txt
+        done
+        
+        # Files that exist in both lists need to have their checksums compared to see if they're different
+        join local_sorted.txt remote_sorted.txt | while read -r file local_checksum remote_checksum; do
+          if [ "$local_checksum" != "$remote_checksum" ]; then
+            # File has been modified, push the new version.
+            local_file="${{ inputs.local-path }}/$file"
+            remote_file="${{ inputs.remote-path }}/$file"
+            echo "mkdir -p \"$(dirname \"$remote_file\")\";" >> lftp_commands.txt
+            echo "put \"$local_file\" -o \"$remote_file\";" >> lftp_commands.txt
           fi
-        done < remote_checksums.txt
+        done
 
         echo "bye" >> lftp_commands.txt
         echo "::endgroup::"
