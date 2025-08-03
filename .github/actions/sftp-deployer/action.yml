@@ -56,7 +56,7 @@ runs:
         # Use the provided local file path from the new input variable.
         # The 'put' command transfers a file from local to remote.
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
-                  put \"${{inputs.maintenance-page-path}}\" \"${{inputs.remote-path}}/app_offline.htm\""
+                  put \"${{inputs.maintenance-page-path}}\" \"${{inputs.remote-path}}app_offline.htm\""
         echo "::endgroup::"
     
     - name: "Transfer files"
