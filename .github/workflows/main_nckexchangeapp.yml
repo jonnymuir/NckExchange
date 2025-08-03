@@ -42,6 +42,12 @@ jobs:
               umbracoDbDSN = "${{ secrets.UMBRACO_DB_DSN }}"
               umbracoDbDSN_ProviderName = "Microsoft.Data.SqlClient"
           }
+          # Add the uSync setting to trigger an import on application startup.
+          $json.uSync = @{
+              Settings = @{
+                  Import = $true
+              }
+          }
           # To fix the 'serialization has exceeded the set depth' warning, we increase the depth.
           $json | ConvertTo-Json -Depth 4 | Set-Content 'publish/appsettings.json'
 
@@ -78,4 +84,4 @@ jobs:
           remote-password: ${{ secrets.SFTP_PASSWORD }}
           local-path: './app_publish/'
           remote-path: '/htdocs/'
-          maintenance-page-path: './app_offline.htm'
+          maintenance-page-path: './app_offline.htm' # <-- This is the new required input

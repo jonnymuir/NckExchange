@@ -1,12 +1,13 @@
-# A custom, simplified GitHub Action for SFTP file deployment.
+# A custom GitHub Action for SFTP file deployment based on file checksums.
 # This action is designed to be used by other workflows.
-# It installs lftp, authenticates with SFTP credentials, and mirrors the local directory to the remote.
+# It installs lftp, generates local checksums, compares them with remote checksums,
+# and then pushes, removes, or updates only the files that have changed.
 
-name: "Simplified SFTP Deployer"
-description: "A stripped-down SFTP deployment action that mirrors a local directory to a remote host."
+name: "Checksum-Based SFTP Deployer"
+description: "An SFTP deployment action that uses checksums to intelligently mirror a local directory to a remote host."
 branding:
-  icon: "upload"
-  color: "blue"
+  icon: "check-circle"
+  color: "green"
 
 inputs:
   remote-protocol:
@@ -43,10 +44,71 @@ runs:
       shell: bash
       run: |
         echo "::group::Install packages"
-        # We need lftp to handle the SFTP mirroring.
-        # The command is optimized for a non-interactive CI/CD environment
-        # by combining update and install, and using flags to prevent prompts.
+        # We need lftp to handle the SFTP operations.
+        # This is optimized for a non-interactive CI/CD environment.
         DEBIAN_FRONTEND=noninteractive sudo apt-get update && sudo apt-get install --no-install-recommends -y lftp
+        echo "::endgroup::"
+
+    - name: "Generate local checksums"
+      shell: bash
+      run: |
+        echo "::group::Generating checksums for local files"
+        # The 'find' command with '-print0' and 'xargs -0' handles filenames with spaces.
+        # This creates a checksum file with full paths relative to the local-path.
+        # This will be used as the source of truth for the deployment.
+        find "${{ inputs.local-path }}" -type f -print0 | xargs -0 md5sum > local_checksums.txt
+        # If the local path is a single file, md5sum won't prepend the path, so we handle that case.
+        if ! [ -s local_checksums.txt ]; then
+          md5sum "${{ inputs.local-path }}" | sed "s| |  ${{ inputs.local-path }}/|" > local_checksums.txt
+        fi
+        echo "::endgroup::"
+    
+    - name: "Download remote checksums"
+      shell: bash
+      run: |
+        echo "::group::Attempting to download remote checksum file"
+        # We use lftp to attempt to download the remote checksum file.
+        # The '&>/dev/null || true' part handles the case where the file doesn't exist,
+        # preventing the workflow from failing.
+        lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
+                  get -O . \"${{inputs.remote-path}}/checksums.txt\" || rm \"./checksums.txt\"" &>/dev/null || true
+        # Rename the downloaded file for consistency
+        mv checksums.txt remote_checksums.txt || touch remote_checksums.txt
+        echo "::endgroup::"
+
+    - name: "Compare checksums and generate lftp commands"
+      shell: bash
+      id: generate_commands
+      run: |
+        echo "::group::Comparing checksums and preparing commands"
+        # This script compares the local and remote checksums and generates a series of
+        # lftp commands for pushing, removing, and updating files.
+        
+        # Add files to be pushed (new or modified)
+        push_commands=""
+        while read -r local_checksum local_file; do
+          if ! grep -q "$local_checksum  $local_file" remote_checksums.txt; then
+            # File is new or has a different checksum. We need to push it.
+            # We also need to get the directory path for the file to ensure it exists.
+            local_dir="$(dirname "$local_file")"
+            push_commands+="mkdir -p \"${{ inputs.remote-path }}/$local_dir\"; "
+            push_commands+="put \"$local_file\" -o \"${{ inputs.remote-path }}/$local_file\"; "
+          fi
+        done < local_checksums.txt
+
+        # Add files to be removed
+        remove_commands=""
+        while read -r remote_checksum remote_file; do
+          if ! grep -q "$remote_checksum  $remote_file" local_checksums.txt; then
+            # File is in the remote but not the local. We need to remove it.
+            remove_commands+="rm \"${{ inputs.remote-path }}/$remote_file\"; "
+          fi
+        done < remote_checksums.txt
+
+        # Create a combined command string
+        full_command="${push_commands}${remove_commands}bye"
+        echo "::set-output name=lftp_commands::$full_command"
+        echo "Generated commands: $full_command"
         echo "::endgroup::"
 
     - name: "Put site in maintenance mode"
@@ -58,16 +120,24 @@ runs:
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
                   put \"${{inputs.maintenance-page-path}}\" -o \"${{inputs.remote-path}}/app_offline.htm\""
         echo "::endgroup::"
-    
-    - name: "Transfer files"
+
+    - name: "Execute lftp commands"
+      shell: bash
+      env:
+        LFTP_COMMANDS: ${{ steps.generate_commands.outputs.lftp_commands }}
+      run: |
+        echo "::group::Executing deployment commands"
+        lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
+                  $LFTP_COMMANDS"
+        echo "::endgroup::"
+
+    - name: "Upload new checksums file"
       shell: bash
       run: |
-        echo "::group::Transfer files to remote host"
-        # Use lftp to mirror the local path to the remote path.
-        # The 'mirror' command ensures all local files are copied to the remote.
-        lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; 
-                  mirror --reverse --delete --verbose \"${{inputs.local-path}}\" \"${{inputs.remote-path}}\""
-
+        echo "::group::Uploading new checksums file"
+        # This step uploads the new local checksum file to the remote path for the next deployment.
+        lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
+                  put local_checksums.txt -o \"${{inputs.remote-path}}/checksums.txt\""
         echo "::endgroup::"
 
     - name: "Take site out of maintenance mode"
