@@ -120,7 +120,25 @@ runs:
         # Use `join -v 2` to find files that exist only in remote_sorted.txt.
         join -v 2 remote_sorted.txt local_sorted.txt | while read -r checksum file; do
           # The file is no longer needed. We need to remove it.
-          echo "rm \"${{ inputs.remote-path }}/$file\";" >> lftp_commands.txt
+          # We use a case statement to check if the file is in one of the directories to be preserved.
+          case "$file" in
+            "app_offline.htm")
+              echo "Skipping removal of maintenance page: $file" >> lftp_commands.txt
+              ;;
+            wwwroot/umbraco/Data/*)
+              echo "Skipping removal of Umbraco Data file: $file" >> lftp_commands.txt
+              ;;
+            wwwroot/umbraco/Logs/*)
+              echo "Skipping removal of Umbraco Logs file: $file" >> lftp_commands.txt
+              ;;
+            wwwroot/media/*)
+              echo "Skipping removal of Umbraco Media file: $file" >> lftp_commands.txt
+              ;;
+            *)
+              # If it's none of the above, we remove the file.
+              echo "rm \"${{ inputs.remote-path }}/$file\";" >> lftp_commands.txt
+              ;;
+          esac
         done
         
         # Files that exist in both lists need to have their checksums compared to see if they're different
