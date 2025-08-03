@@ -1,0 +1,70 @@
+# A custom, simplified GitHub Action for SFTP file deployment.
+# This action is designed to be used by other workflows.
+# It installs lftp, authenticates with SFTP credentials, and mirrors the local directory to the remote.
+
+name: "Simplified SFTP Deployer"
+description: "A stripped-down SFTP deployment action that mirrors a local directory to a remote host."
+branding:
+  icon: "upload"
+  color: "blue"
+
+inputs:
+  remote-protocol:
+    description: "Remote file transfer protocol (sftp)"
+    required: true
+    default: "sftp"
+  remote-host:
+    description: "Remote host"
+    required: true
+  remote-port:
+    description: "Remote port"
+    required: true
+    default: 22
+  remote-user:
+    description: "SFTP username"
+    required: true
+  remote-password:
+    description: "SFTP password"
+    required: true
+  local-path:
+    description: "Local path to deploy from"
+    required: true
+  remote-path:
+    description: "Remote path on host"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Install dependencies"
+      shell: bash
+      run: |
+        echo "::group::Install packages"
+        # We need lftp to handle the SFTP mirroring
+        sudo apt-get --quiet --quiet update && sudo apt-get --quiet --quiet --no-install-recommends --yes install lftp
+        echo "::endgroup::"
+    
+    - name: "Transfer files"
+      shell: bash
+      run: |
+        echo "::group::Transfer files"
+        
+        # Create .netrc file for authentication without exposing the password in the command
+        echo "machine ${{inputs.remote-host}} login ${{inputs.remote-user}} password ${{inputs.remote-password}}" > ~/.netrc
+        chmod 600 ~/.netrc
+        
+        # Use lftp to mirror the local path to the remote path.
+        # The 'mirror' command ensures all local files are copied to the remote.
+        lftp -c "open ${{inputs.remote-protocol}}://${{inputs.remote-host}}:${{inputs.remote-port}}; 
+                  mirror --reverse --delete --verbose \"${{inputs.local-path}}\" \"${{inputs.remote-path}}\""
+
+        echo "::endgroup::"
+
+    - name: "Cleanup"
+      shell: bash
+      run: |
+        echo "::group::Cleanup"
+        # Remove the temporary .netrc file
+        rm --force --verbose ~/.netrc
+        echo "::endgroup::"
+
