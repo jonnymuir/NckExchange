@@ -49,7 +49,7 @@ runs:
     - name: "Put site in maintenance mode"
       shell: bash
       run: |
-        echo "::group::Creating app_offline.htm to take site offline"
+        echo "::group::Creating maintenance page app_offline.htm to take site offline"
         # Create a simple app_offline.htm file to release file locks on the remote server.
         # This is a standard practice for deploying to IIS.
         # The 'put -e' command is used to put the inline content directly into the remote file.
