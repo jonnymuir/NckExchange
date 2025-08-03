@@ -49,23 +49,13 @@ runs:
       run: |
         echo "::group::Transfer files to remote host"
         
-        # Create .netrc file for authentication without exposing the password in the command
-        echo "machine ${{inputs.remote-host}} login ${{inputs.remote-user}} password ${{inputs.remote-password}}" > ~/.netrc
-        chmod 600 ~/.netrc
-        
         # Use lftp to mirror the local path to the remote path.
+        # This version passes the username and password directly in the URI for more reliable
+        # authentication in non-interactive environments.
         # The 'mirror' command ensures all local files are copied to the remote.
-        # 'set sftp:auto-confirm yes' is added to automatically accept the host key.
-        lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-host}}:${{inputs.remote-port}}; 
+        # We use 'set sftp:auto-confirm yes;' to automatically accept the host key, which is a common
+        # practice in CI/CD environments where the known_hosts file is not persistent.
+        lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; 
                   mirror --reverse --delete --verbose \"${{inputs.local-path}}\" \"${{inputs.remote-path}}\""
 
         echo "::endgroup::"
-
-    - name: "Cleanup"
-      shell: bash
-      run: |
-        echo "::group::Cleanup"
-        # Remove the temporary .netrc file
-        rm --force --verbose ~/.netrc
-        echo "::endgroup::"
-
