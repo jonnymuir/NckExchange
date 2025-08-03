@@ -47,7 +47,7 @@ runs:
     - name: "Transfer files"
       shell: bash
       run: |
-        echo "::group::Transfer files to fasthosts"
+        echo "::group::Transfer files to remote host"
         
         # Create .netrc file for authentication without exposing the password in the command
         echo "machine ${{inputs.remote-host}} login ${{inputs.remote-user}} password ${{inputs.remote-password}}" > ~/.netrc
@@ -55,9 +55,8 @@ runs:
         
         # Use lftp to mirror the local path to the remote path.
         # The 'mirror' command ensures all local files are copied to the remote.
-        # We set sftp:connect-program to bypass host key checking, which is a common and necessary practice
-        # in CI/CD environments where the known_hosts file is not persistent.
-        lftp -c "set sftp:connect-program \"ssh -a -x -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null\"; open ${{inputs.remote-protocol}}://${{inputs.remote-host}}:${{inputs.remote-port}}; 
+        # 'set sftp:auto-confirm yes' is added to automatically accept the host key.
+        lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-host}}:${{inputs.remote-port}}; 
                   mirror --reverse --delete --verbose \"${{inputs.local-path}}\" \"${{inputs.remote-path}}\""
 
         echo "::endgroup::"
@@ -69,3 +68,4 @@ runs:
         # Remove the temporary .netrc file
         rm --force --verbose ~/.netrc
         echo "::endgroup::"
+
