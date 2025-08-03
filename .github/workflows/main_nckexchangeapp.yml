@@ -10,7 +10,20 @@ on:
     # under the 'src' folder are modified.
     paths:
       - 'src/**'
+  # The new 'workflow_dispatch' event allows you to run this workflow manually
+  # and provide custom inputs.
   workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Perform a dry run without actually deploying files."
+        type: boolean
+        required: true
+        default: false
+      debug-mode:
+        description: "Enable verbose debug output for the SFTP transfer."
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build:
@@ -84,4 +97,7 @@ jobs:
           remote-password: ${{ secrets.SFTP_PASSWORD }}
           local-path: './app_publish/'
           remote-path: '/htdocs/'
-          maintenance-page-path: './app_offline.htm' # <-- This is the new required input
+          maintenance-page-path: './app_offline.htm'
+          # Pass the new inputs from the manual trigger to the action
+          dry-run: ${{ github.event.inputs.dry-run }}
+          debug-mode: ${{ github.event.inputs.debug-mode }}

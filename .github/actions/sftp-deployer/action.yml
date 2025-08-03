@@ -36,6 +36,14 @@ inputs:
   maintenance-page-path:
     description: "Path to the local maintenance page file (app_offline.htm)"
     required: true
+  dry-run:
+    description: "If true, the action will only print the commands without executing them."
+    required: false
+    default: "false"
+  debug-mode:
+    description: "If true, the lftp commands will run in verbose debug mode."
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -91,6 +99,11 @@ runs:
         # Create a file to store the lftp commands
         echo "# lftp commands generated for deployment" > lftp_commands.txt
         
+        # Add debug setting if enabled
+        if [ "${{ inputs.debug-mode }}" == "true" ]; then
+          echo "set sftp:debug 9;" >> lftp_commands.txt
+        fi
+
         # Find files that are new or have a different checksum (in local but not remote, or different checksums)
         # Use `join` to find unique files in local_sorted.txt. `-v 1` prints lines from file 1 (local) that have no match in file 2 (remote).
         # We then pipe the output to a while loop to generate the commands.
@@ -123,8 +136,10 @@ runs:
 
         echo "bye" >> lftp_commands.txt
         echo "::endgroup::"
-
+    
+    # We add an if condition to check for dry-run
     - name: "Put site in maintenance mode"
+      if: inputs.dry-run == 'false'
       shell: bash
       run: |
         echo "::group::Creating maintenance page app_offline.htm to take site offline"
@@ -133,8 +148,9 @@ runs:
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
                   put \"${{inputs.maintenance-page-path}}\" -o \"${{inputs.remote-path}}/app_offline.htm\""
         echo "::endgroup::"
-
+        
     - name: "Execute lftp commands"
+      if: inputs.dry-run == 'false'
       shell: bash
       run: |
         echo "::group::Executing deployment commands"
@@ -142,7 +158,16 @@ runs:
         lftp -f lftp_commands.txt
         echo "::endgroup::"
 
+    - name: "Dry Run: Displaying commands only"
+      if: inputs.dry-run == 'true'
+      shell: bash
+      run: |
+        echo "::group::Dry Run - The following commands would have been executed:"
+        cat lftp_commands.txt
+        echo "::endgroup::"
+
     - name: "Upload new checksums file"
+      if: inputs.dry-run == 'false'
       shell: bash
       run: |
         echo "::group::Uploading new checksums file"
@@ -152,6 +177,7 @@ runs:
         echo "::endgroup::"
 
     - name: "Take site out of maintenance mode"
+      if: inputs.dry-run == 'false'
       shell: bash
       run: |
         echo "::group::Removing app_offline.htm to bring site online"
