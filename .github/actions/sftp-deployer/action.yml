@@ -55,7 +55,8 @@ runs:
         
         # Use lftp to mirror the local path to the remote path.
         # The 'mirror' command ensures all local files are copied to the remote.
-        lftp -c "open ${{inputs.remote-protocol}}://${{inputs.remote-host}}:${{inputs.remote-port}}; 
+        # 'set sftp:auto-confirm yes' is added to automatically accept the host key.
+        lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-host}}:${{inputs.remote-port}}; 
                   mirror --reverse --delete --verbose \"${{inputs.local-path}}\" \"${{inputs.remote-path}}\""
 
         echo "::endgroup::"
