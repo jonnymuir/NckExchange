@@ -32,6 +32,9 @@ inputs:
   remote-path:
     description: "Remote path on host"
     required: true
+  maintenance-page-path:
+    description: "Path to the local maintenance page file (app_offline.htm)"
+    required: true
 
 runs:
   using: "composite"
@@ -50,11 +53,10 @@ runs:
       shell: bash
       run: |
         echo "::group::Creating maintenance page app_offline.htm to take site offline"
-        # Create a simple app_offline.htm file to release file locks on the remote server.
-        # This is a standard practice for deploying to IIS.
-        # The 'put -e' command is used to put the inline content directly into the remote file.
+        # Use the provided local file path from the new input variable.
+        # The 'put' command transfers a file from local to remote.
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
-                  put -e \"<!DOCTYPE html><html><body><h1>Site Under Maintenance</h1><p>We'll be back shortly!</p></body></html>\" \"${{inputs.remote-path}}/app_offline.htm\""
+                  put \"${{inputs.maintenance-page-path}}\" \"${{inputs.remote-path}}/app_offline.htm\""
         echo "::endgroup::"
     
     - name: "Transfer files"
