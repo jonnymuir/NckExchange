@@ -40,22 +40,38 @@ runs:
       shell: bash
       run: |
         echo "::group::Install packages"
-        # We need lftp to handle the SFTP mirroring
-        sudo apt-get --quiet --quiet update && sudo apt-get --quiet --quiet --no-install-recommends --yes install lftp
+        # We need lftp to handle the SFTP mirroring.
+        # The command is optimized for a non-interactive CI/CD environment
+        # by combining update and install, and using flags to prevent prompts.
+        DEBIAN_FRONTEND=noninteractive sudo apt-get update && sudo apt-get install --no-install-recommends -y lftp
+        echo "::endgroup::"
+
+    - name: "Put site in maintenance mode"
+      shell: bash
+      run: |
+        echo "::group::Creating app_offline.htm to take site offline"
+        # Create a simple app_offline.htm file to release file locks on the remote server.
+        # This is a standard practice for deploying to IIS.
+        lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
+                  put -O \"${{inputs.remote-path}}\" -e \"<!DOCTYPE html><html><body><h1>Site Under Maintenance</h1><p>We'll be back shortly!</p></body></html>\" app_offline.htm"
         echo "::endgroup::"
     
     - name: "Transfer files"
       shell: bash
       run: |
         echo "::group::Transfer files to remote host"
-        
         # Use lftp to mirror the local path to the remote path.
-        # This version passes the username and password directly in the URI for more reliable
-        # authentication in non-interactive environments.
         # The 'mirror' command ensures all local files are copied to the remote.
-        # We use 'set sftp:auto-confirm yes;' to automatically accept the host key, which is a common
-        # practice in CI/CD environments where the known_hosts file is not persistent.
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; 
                   mirror --reverse --delete --verbose \"${{inputs.local-path}}\" \"${{inputs.remote-path}}\""
 
+        echo "::endgroup::"
+
+    - name: "Take site out of maintenance mode"
+      shell: bash
+      run: |
+        echo "::group::Removing app_offline.htm to bring site online"
+        # Remove the temporary app_offline.htm file to bring the site back online.
+        lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
+                  rm \"${{inputs.remote-path}}/app_offline.htm\""
         echo "::endgroup::"
