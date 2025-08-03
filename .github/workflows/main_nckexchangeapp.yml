@@ -1,4 +1,4 @@
-# Docs for the GitHub Actions SFTP Deploy action: https://github.com/marketplace/actions/sftp-deploy
+# Docs for the GitHub Actions SFTP Deploy action: https://github.com/marketplace/actions/ftp-sftp-file-deployer
 
 name: Build and Deploy Umbraco App to Fasthosts
 
@@ -60,12 +60,19 @@ jobs:
         with:
           name: .net-app
           path: ./app_publish
-      
+
+      # SFTP Upload to Fasthosts using a new action for incremental updates
       - name: SFTP Upload to Fasthosts
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.6
+        # This action supports "delta sync" for SFTP, which only transfers changed files.
+        uses: milanmk/actions-file-deployer@master
         with:
-          username: ${{ secrets.SFTP_USERNAME }}
-          server: ${{ secrets.SFTP_HOST }}
-          password: ${{ secrets.SFTP_PASSWORD }}
-          local_path: './app_publish/'
-          remote_path: '/htdocs/'
+          remote-protocol: sftp
+          remote-host: ${{ secrets.SFTP_HOST }}
+          remote-user: ${{ secrets.SFTP_USERNAME }}
+          remote-password: ${{ secrets.SFTP_PASSWORD }}
+          local-path: './app_publish/'
+          remote-path: '/htdocs/'
+          # This is the key setting that enables incremental updates with SFTP.
+          # It compares the files since the last revision and only uploads new/changed files.
+          sync: 'delta'
+
