@@ -6,6 +6,10 @@ on:
   push:
     branches:
       - main
+    # The 'paths' keyword now ensures this workflow only runs when files
+    # under the 'src' folder are modified.
+    paths:
+      - 'src/**'
   workflow_dispatch:
 
 jobs:
@@ -55,6 +59,8 @@ jobs:
       contents: read
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
