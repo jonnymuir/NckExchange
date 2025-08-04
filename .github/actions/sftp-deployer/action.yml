@@ -69,6 +69,9 @@ runs:
         if ! [ -s local_checksums.txt ]; then
           md5sum "${{ inputs.local-path }}" | sed "s| |  ${{ inputs.local-path }}/|" > local_checksums.txt
         fi
+        # Now, remove the local-path prefix from the checksums file.
+        # This is the key fix to ensure correct pathing later.
+        sed -i "s|  ${{ inputs.local-path }}/|  |" local_checksums.txt
         echo "::endgroup::"
     
     - name: "Download remote checksums"
