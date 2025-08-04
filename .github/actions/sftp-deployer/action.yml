@@ -94,10 +94,28 @@ runs:
           echo "set sftp:debug 9;" >> lftp_commands.txt
         fi
 
-        join -v 1 local_sorted.txt remote_sorted.txt | awk '{print $2}' > files_to_add.txt
-        join local_sorted.txt remote_sorted.txt | awk '{if ($2 != $3) print $1}' > files_to_update.txt
+        # Conditional open command for security
+        if [ "${{ inputs.dry-run }}" == "true" ]; then
+          printf 'open "%s://%s:%s@%s:%s";\n' \
+            "[PROTOCOL]" \
+            "[USER]" \
+            "[PASSWORD]" \
+            "[HOST]" \
+            "[PORT]" >> lftp_commands.txt
+        else
+          printf 'open "%s://%s:%s@%s:%s";\n' \
+            "${{ inputs.remote-protocol }}" \
+            "${{ inputs.remote-user }}" \
+            "${{ inputs.remote-password }}" \
+            "${{ inputs.remote-host }}" \
+            "${{ inputs.remote-port }}" >> lftp_commands.txt
+        fi
+
+        # Get files to add or update
+        join -v 1 local_sorted.txt remote_sorted.txt | awk '{print $2}' > files_to_add_update.txt
+        join local_sorted.txt remote_sorted.txt | awk '{if ($2 != $3) print $1}' >> files_to_add_update.txt
         
-        cat files_to_add.txt files_to_update.txt | sort -u > all_files_to_deploy.txt
+        cat files_to_add_update.txt | sort -u > all_files_to_deploy.txt
 
         declare -A created_dirs
         while IFS= read -r file; do
@@ -113,7 +131,8 @@ runs:
           printf 'put "%s" -o "%s";\n' "$local_file" "$remote_file" >> lftp_commands.txt
         done < all_files_to_deploy.txt
 
-        join -v 2 remote_sorted.txt local_sorted.txt | while read -r checksum file; do
+        # Get files to remove (on remote but not on local)
+        join -v 1 remote_sorted.txt local_sorted.txt | while read -r checksum file; do
           case "$file" in
             "app_offline.htm")
               printf "Skipping removal of maintenance page: %s\n" "$file" >> lftp_commands.txt
