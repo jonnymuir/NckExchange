@@ -52,8 +52,6 @@ runs:
       shell: bash
       run: |
         echo "::group::Install packages"
-        # We need lftp to handle the SFTP operations.
-        # This is optimized for a non-interactive CI/CD environment.
         DEBIAN_FRONTEND=noninteractive sudo apt-get update && sudo apt-get install --no-install-recommends -y lftp
         echo "::endgroup::"
 
@@ -61,29 +59,26 @@ runs:
       shell: bash
       run: |
         echo "::group::Generating checksums for local files"
-        # The 'find' command with '-print0' and 'xargs -0' handles filenames with spaces.
-        # This creates a checksum file with full paths relative to the local-path.
-        # This will be used as the source of truth for the deployment.
-        find "${{ inputs.local-path }}" -type f -print0 | xargs -0 md5sum > local_checksums.txt
-        # If the local path is a single file, md5sum won't prepend the path, so we handle that case.
-        if ! [ -s local_checksums.txt ]; then
-          md5sum "${{ inputs.local-path }}" | sed "s| |  ${{ inputs.local-path }}/|" > local_checksums.txt
+        # First, ensure the local-path directory exists
+        if [ ! -d "${{ inputs.local-path }}" ]; then
+          echo "Error: Local path '${{ inputs.local-path }}' is not a directory. Exiting."
+          exit 1
         fi
-        # Now, remove the local-path prefix from the checksums file.
-        # This is the key fix to ensure correct pathing later.
-        sed -i "s|  ${{ inputs.local-path }}/|  |" local_checksums.txt
+        
+        # Change to the local deployment directory
+        cd "${{ inputs.local-path }}"
+        
+        # Find all files and generate their checksums.
+        find . -type f -print0 | xargs -0 md5sum > checksums.txt
+        
         echo "::endgroup::"
     
     - name: "Download remote checksums"
       shell: bash
       run: |
         echo "::group::Attempting to download remote checksum file"
-        # We use lftp to attempt to download the remote checksum file.
-        # The '&>/dev/null || true' part handles the case where the file doesn't exist,
-        # preventing the workflow from failing.
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
                   get -O . \"${{inputs.remote-path}}/checksums.txt\" || rm \"./checksums.txt\"" &>/dev/null || true
-        # Rename the downloaded file for consistency
         mv checksums.txt remote_checksums.txt || touch remote_checksums.txt
         echo "::endgroup::"
 
@@ -92,11 +87,9 @@ runs:
       id: generate_commands
       run: |
         echo "::group::Comparing checksums and preparing commands"
-        # This script compares the local and remote checksums and generates a series of
-        # lftp commands for pushing, removing, and updating files.
         
         # Sort both checksum files to enable efficient comparison with `join`
-        sort -k 2,2 local_checksums.txt > local_sorted.txt
+        sort -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
         sort -k 2,2 remote_checksums.txt > remote_sorted.txt
         
         # Create a file to store the lftp commands
@@ -107,47 +100,38 @@ runs:
           echo "set sftp:debug 9;" >> lftp_commands.txt
         fi
 
-        # Find files that are new or have a different checksum (in local but not remote, or different checksums)
-        # Use `join` to find unique files in local_sorted.txt. `-v 1` prints lines from file 1 (local) that have no match in file 2 (remote).
-        # We then pipe the output to a while loop to generate the commands.
+        # Find files that are new or have a different checksum
         join -v 1 local_sorted.txt remote_sorted.txt | while read -r checksum file; do
-          # The file is new or modified. We need to push it.
           local_file="${{ inputs.local-path }}/$file"
           remote_file="${{ inputs.remote-path }}/$file"
-          # Ensure the remote directory exists
           echo "mkdir -p \"$(dirname \"$remote_file\")\";" >> lftp_commands.txt
           echo "put \"$local_file\" -o \"$remote_file\";" >> lftp_commands.txt
         done
 
-        # Find files that are no longer in the local directory (only in remote)
-        # Use `join -v 2` to find files that exist only in remote_sorted.txt.
+        # Find files that are no longer in the local directory
         join -v 2 remote_sorted.txt local_sorted.txt | while read -r checksum file; do
-          # The file is no longer needed. We need to remove it.
-          # We use a case statement to check if the file is in one of the directories to be preserved.
           case "$file" in
-            "app_offline.htm")
+            "./app_offline.htm")
               echo "Skipping removal of maintenance page: $file" >> lftp_commands.txt
               ;;
-            wwwroot/umbraco/Data/*)
+            ./wwwroot/umbraco/Data/*)
               echo "Skipping removal of Umbraco Data file: $file" >> lftp_commands.txt
               ;;
-            wwwroot/umbraco/Logs/*)
+            ./wwwroot/umbraco/Logs/*)
               echo "Skipping removal of Umbraco Logs file: $file" >> lftp_commands.txt
               ;;
-            wwwroot/media/*)
+            ./wwwroot/media/*)
               echo "Skipping removal of Umbraco Media file: $file" >> lftp_commands.txt
               ;;
             *)
-              # If it's none of the above, we remove the file.
               echo "rm \"${{ inputs.remote-path }}/$file\";" >> lftp_commands.txt
               ;;
           esac
         done
         
-        # Files that exist in both lists need to have their checksums compared to see if they're different
+        # Files that exist in both lists need to have their checksums compared
         join local_sorted.txt remote_sorted.txt | while read -r file local_checksum remote_checksum; do
           if [ "$local_checksum" != "$remote_checksum" ]; then
-            # File has been modified, push the new version.
             local_file="${{ inputs.local-path }}/$file"
             remote_file="${{ inputs.remote-path }}/$file"
             echo "mkdir -p \"$(dirname \"$remote_file\")\";" >> lftp_commands.txt
@@ -158,14 +142,11 @@ runs:
         echo "bye" >> lftp_commands.txt
         echo "::endgroup::"
     
-    # We add an if condition to check for dry-run
     - name: "Put site in maintenance mode"
       if: inputs.dry-run == 'false'
       shell: bash
       run: |
         echo "::group::Creating maintenance page app_offline.htm to take site offline"
-        # Use the provided local file path from the new input variable.
-        # The 'put' command transfers a file from local to remote.
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
                   put \"${{inputs.maintenance-page-path}}\" -o \"${{inputs.remote-path}}/app_offline.htm\""
         echo "::endgroup::"
@@ -175,7 +156,6 @@ runs:
       shell: bash
       run: |
         echo "::group::Executing deployment commands"
-        # The '-f' flag tells lftp to read commands from a file, which is more robust for large deployments.
         lftp -f lftp_commands.txt
         echo "::endgroup::"
 
@@ -192,9 +172,8 @@ runs:
       shell: bash
       run: |
         echo "::group::Uploading new checksums file"
-        # This step uploads the new local checksum file to the remote path for the next deployment.
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
-                  put local_checksums.txt -o \"${{inputs.remote-path}}/checksums.txt\""
+                  put \"${{inputs.local-path}}/checksums.txt\" -o \"${{inputs.remote-path}}/checksums.txt\""
         echo "::endgroup::"
 
     - name: "Take site out of maintenance mode"
@@ -202,7 +181,6 @@ runs:
       shell: bash
       run: |
         echo "::group::Removing app_offline.htm to bring site online"
-        # Remove the temporary app_offline.htm file to bring the site back online.
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
                   rm \"${{inputs.remote-path}}/app_offline.htm\""
         echo "::endgroup::"
