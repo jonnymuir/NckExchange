@@ -68,8 +68,8 @@ runs:
         # Change to the local deployment directory
         cd "${{ inputs.local-path }}"
         
-        # Find all files and generate their checksums.
-        find . -type f -print0 | xargs -0 md5sum > checksums.txt
+        # Use find with -printf to generate clean paths without leading './'
+        find . -type f -printf '%P\n' | xargs md5sum > checksums.txt
         
         echo "::endgroup::"
     
@@ -111,16 +111,16 @@ runs:
         # Find files that are no longer in the local directory
         join -v 2 remote_sorted.txt local_sorted.txt | while read -r checksum file; do
           case "$file" in
-            "./app_offline.htm")
+            "app_offline.htm")
               echo "Skipping removal of maintenance page: $file" >> lftp_commands.txt
               ;;
-            ./wwwroot/umbraco/Data/*)
+            wwwroot/umbraco/Data/*)
               echo "Skipping removal of Umbraco Data file: $file" >> lftp_commands.txt
               ;;
-            ./wwwroot/umbraco/Logs/*)
+            wwwroot/umbraco/Logs/*)
               echo "Skipping removal of Umbraco Logs file: $file" >> lftp_commands.txt
               ;;
-            ./wwwroot/media/*)
+            wwwroot/media/*)
               echo "Skipping removal of Umbraco Media file: $file" >> lftp_commands.txt
               ;;
             *)
