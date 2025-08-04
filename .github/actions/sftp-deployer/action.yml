@@ -59,16 +59,13 @@ runs:
       shell: bash
       run: |
         echo "::group::Generating checksums for local files"
-        # First, ensure the local-path directory exists
         if [ ! -d "${{ inputs.local-path }}" ]; then
           echo "Error: Local path '${{ inputs.local-path }}' is not a directory. Exiting."
           exit 1
         fi
         
-        # Change to the local deployment directory
         cd "${{ inputs.local-path }}"
         
-        # Use find with -printf to generate clean paths without leading './'
         find . -type f -printf '%P\n' | xargs md5sum > checksums.txt
         
         echo "::endgroup::"
@@ -88,57 +85,54 @@ runs:
       run: |
         echo "::group::Comparing checksums and preparing commands"
         
-        # Sort both checksum files to enable efficient comparison with `join`
         sort -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
         sort -k 2,2 remote_checksums.txt > remote_sorted.txt
         
-        # Create a file to store the lftp commands
         echo "# lftp commands generated for deployment" > lftp_commands.txt
         
-        # Add debug setting if enabled
         if [ "${{ inputs.debug-mode }}" == "true" ]; then
           echo "set sftp:debug 9;" >> lftp_commands.txt
         fi
 
-        # Find files that are new or have a different checksum
-        join -v 1 local_sorted.txt remote_sorted.txt | while read -r checksum file; do
-          local_file="${{ inputs.local-path }}/$file"
-          remote_file="${{ inputs.remote-path }}/$file"
-          echo "mkdir -p \"$(dirname \"$remote_file\")\";" >> lftp_commands.txt
-          echo "put \"$local_file\" -o \"$remote_file\";" >> lftp_commands.txt
-        done
+        join -v 1 local_sorted.txt remote_sorted.txt | awk '{print $2}' > files_to_add.txt
+        join local_sorted.txt remote_sorted.txt | awk '{if ($2 != $3) print $1}' > files_to_update.txt
+        
+        cat files_to_add.txt files_to_update.txt | sort -u > all_files_to_deploy.txt
 
-        # Find files that are no longer in the local directory
+        declare -A created_dirs
+        while IFS= read -r file; do
+          remote_file="${{ inputs.remote-path }}/$file"
+          remote_dir="$(dirname "$remote_file")"
+          
+          if [[ -z "${created_dirs["$remote_dir"]}" ]]; then
+            printf 'mkdir -p "%s";\n' "$remote_dir" >> lftp_commands.txt
+            created_dirs["$remote_dir"]=1
+          fi
+          
+          local_file="${{ inputs.local-path }}/$file"
+          printf 'put "%s" -o "%s";\n' "$local_file" "$remote_file" >> lftp_commands.txt
+        done < all_files_to_deploy.txt
+
         join -v 2 remote_sorted.txt local_sorted.txt | while read -r checksum file; do
           case "$file" in
             "app_offline.htm")
-              echo "Skipping removal of maintenance page: $file" >> lftp_commands.txt
+              printf "Skipping removal of maintenance page: %s\n" "$file" >> lftp_commands.txt
               ;;
             wwwroot/umbraco/Data/*)
-              echo "Skipping removal of Umbraco Data file: $file" >> lftp_commands.txt
+              printf "Skipping removal of Umbraco Data file: %s\n" "$file" >> lftp_commands.txt
               ;;
             wwwroot/umbraco/Logs/*)
-              echo "Skipping removal of Umbraco Logs file: $file" >> lftp_commands.txt
+              printf "Skipping removal of Umbraco Logs file: %s\n" "$file" >> lftp_commands.txt
               ;;
             wwwroot/media/*)
-              echo "Skipping removal of Umbraco Media file: $file" >> lftp_commands.txt
+              printf "Skipping removal of Umbraco Media file: %s\n" "$file" >> lftp_commands.txt
               ;;
             *)
-              echo "rm \"${{ inputs.remote-path }}/$file\";" >> lftp_commands.txt
+              printf 'rm "%s/%s";\n' "${{ inputs.remote-path }}" "$file" >> lftp_commands.txt
               ;;
           esac
         done
         
-        # Files that exist in both lists need to have their checksums compared
-        join local_sorted.txt remote_sorted.txt | while read -r file local_checksum remote_checksum; do
-          if [ "$local_checksum" != "$remote_checksum" ]; then
-            local_file="${{ inputs.local-path }}/$file"
-            remote_file="${{ inputs.remote-path }}/$file"
-            echo "mkdir -p \"$(dirname \"$remote_file\")\";" >> lftp_commands.txt
-            echo "put \"$local_file\" -o \"$remote_file\";" >> lftp_commands.txt
-          fi
-        done
-
         echo "bye" >> lftp_commands.txt
         echo "::endgroup::"
     
