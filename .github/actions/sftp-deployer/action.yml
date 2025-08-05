@@ -81,9 +81,9 @@ runs:
         mv checksums.txt remote_checksums.txt || touch remote_checksums.txt
         echo "::endgroup::"
 
-    - name: "Compare checksums and generate lftp commands"
+    - name: "Compare checksums"
       shell: bash
-      id: generate_commands
+      id: generate_checksums
       run: |
         echo "::group::Comparing checksums and preparing commands"
         
@@ -104,16 +104,6 @@ runs:
         # Use LC_ALL=C and a tab separator for consistent sorting.
         LC_ALL=C sort -t$'\t' -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
         LC_ALL=C sort -t$'\t' -k 2,2 remote_checksums.txt > remote_sorted.txt
-
-        if [ "${{ inputs.dry-run }}" == "true" ]; then
-          echo "--- Debugging Sorted Files (Dry Run) ---"
-          echo "Contents of local_sorted.txt:"
-          cat local_sorted.txt
-          echo "-----------------------------"
-          echo "Contents of remote_sorted.txt:"
-          cat remote_sorted.txt
-          echo "-----------------------------"
-        fi
         
         echo "# lftp commands generated for deployment" > lftp_commands.txt
         
@@ -138,8 +128,20 @@ runs:
             "${{ inputs.remote-port }}" >> lftp_commands.txt
         fi
 
-        echo "DEBUG EXIT"
-        throw "Debugging output for dry run only. Exiting." && exit 0
+    - name: "Upload debug files"
+      if: failure() && inputs.dry-run == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: sorted-checksum-files
+        path: |
+          local_sorted.txt
+          remote_sorted.txt
+        retention-days: 1
+    
+    - name: "Generate lftp commands"
+      shell: bash
+      id: generate_commands
+      run: |
 
         # Get files to add or update
         join -t$'\t' -v 1 local_sorted.txt remote_sorted.txt | awk -F'\t' '{print $2}' > files_to_add_update.txt
