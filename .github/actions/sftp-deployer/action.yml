@@ -101,6 +101,16 @@ runs:
         # Use LC_ALL=C and a tab separator for consistent sorting.
         LC_ALL=C sort -t$'\t' -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
         LC_ALL=C sort -t$'\t' -k 2,2 remote_checksums.txt > remote_sorted.txt
+
+        if [ "${{ inputs.dry-run }}" == "true" ]; then
+          echo "--- Debugging Sorted Files (Dry Run) ---"
+          echo "Contents of local_sorted.txt:"
+          cat local_sorted.txt
+          echo "-----------------------------"
+          echo "Contents of remote_sorted.txt:"
+          cat remote_sorted.txt
+          echo "-----------------------------"
+        fi
         
         echo "# lftp commands generated for deployment" > lftp_commands.txt
         
