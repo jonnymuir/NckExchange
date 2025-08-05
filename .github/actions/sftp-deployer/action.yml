@@ -101,9 +101,15 @@ runs:
         sed -i -E 's/[\r[:space:]]+$//' "${{ inputs.local-path }}/checksums.txt"
         sed -i -E 's/[\r[:space:]]+$//' remote_checksums.txt
 
+        sed -i 's/[[:space:]]\t/\t/g; s/[ \t]*$//' "${{ inputs.local-path }}/checksums.txt"
+        sed -i 's/[[:space:]]\t/\t/g; s/[ \t]*$//' remote_checksums.txt
+
         sort -t$'\t' -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
         sort -t$'\t' -k 2,2 remote_checksums.txt > remote_sorted.txt
         
+        hexdump -C local_sorted.txt > local_sorted_hex.txt
+        hexdump -C remote_sorted.txt > remote_sorted_hex.txt
+
         echo "# lftp commands generated for deployment" > lftp_commands.txt
         
         if [ "${{ inputs.debug-mode }}" == "true" ]; then
@@ -137,6 +143,8 @@ runs:
         path: |
           local_sorted.txt
           remote_sorted.txt
+          local_sorted_hex.txt
+          remote_sorted_hex.txt
         retention-days: 1
     
     - name: "Generate files to update"
@@ -146,12 +154,6 @@ runs:
         echo "::group::Files to update"
 
         # Get files to add or update
-
-        echo "Diagnosing local_sorted.txt:"
-        cat -v local_sorted.txt | head -n 95
-
-        echo "Diagnosing remote_sorted.txt:"
-        cat -v remote_sorted.txt | head -n 95
 
         echo "join -v"
         join -t$'\t' -v 1 local_sorted.txt remote_sorted.txt | awk -F'\t' '{print $2}' > files_to_add_update.txt
