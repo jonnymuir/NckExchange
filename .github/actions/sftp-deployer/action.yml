@@ -94,9 +94,12 @@ runs:
         sed -i -E 's/^([0-9a-f]{32})[[:space:]]+/\1\t/' remote_checksums.txt
 
         # Remove the './' prefix from filenames in both checksum files
-        # This is the fix for the sorting error.
         sed -i -E 's/\t\.\//\t/' "${{ inputs.local-path }}/checksums.txt"
         sed -i -E 's/\t\.\//\t/' remote_checksums.txt
+
+        # NEW: Remove any trailing whitespace and/or carriage returns to ensure consistent sorting.
+        sed -i -E 's/[\r[:space:]]+$//' "${{ inputs.local-path }}/checksums.txt"
+        sed -i -E 's/[\r[:space:]]+$//' remote_checksums.txt
 
         # Use LC_ALL=C and a tab separator for consistent sorting.
         LC_ALL=C sort -t$'\t' -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
