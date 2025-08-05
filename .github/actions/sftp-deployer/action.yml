@@ -85,8 +85,9 @@ runs:
       run: |
         echo "::group::Comparing checksums and preparing commands"
         
-        sort -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
-        sort -k 2,2 remote_checksums.txt > remote_sorted.txt
+        # Use LC_ALL=C to ensure consistent sorting for the join command.
+        LC_ALL=C sort -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
+        LC_ALL=C sort -k 2,2 remote_checksums.txt > remote_sorted.txt
         
         echo "# lftp commands generated for deployment" > lftp_commands.txt
         
