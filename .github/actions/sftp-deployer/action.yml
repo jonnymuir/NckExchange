@@ -85,7 +85,7 @@ runs:
       shell: bash
       id: generate_checksums
       run: |
-        echo "::group::Comparing checksums and preparing commands"
+        echo "::group::Comparing checksums"
         
         # Standardize both files to a tab-separated format
         # This replaces one or more spaces at the beginning of the filename
@@ -128,6 +128,8 @@ runs:
             "${{ inputs.remote-port }}" >> lftp_commands.txt
         fi
 
+        echo "::endgroup::"
+
     - name: "Upload debug files"
       if: failure() && inputs.dry-run == 'true'
       uses: actions/upload-artifact@v3
@@ -142,6 +144,7 @@ runs:
       shell: bash
       id: generate_commands
       run: |
+        echo "::group::Preparing commands"
 
         # Get files to add or update
         join -t$'\t' -v 1 local_sorted.txt remote_sorted.txt | awk -F'\t' '{print $2}' > files_to_add_update.txt
