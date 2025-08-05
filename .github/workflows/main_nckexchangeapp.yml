@@ -69,22 +69,21 @@ jobs:
       
       - name: Create appsettings.json for Production
         run: |
-          # The Windows runner uses PowerShell.
-          # We read the JSON file into a mutable hashtable to safely add or replace the section.
-          # This avoids the error where the 'ConnectionStrings' property is not found initially.
-          $json = Get-Content 'app_publish/appsettings.json' | Out-String | ConvertFrom-Json -AsHashtable
-          $json.ConnectionStrings = @{
-              umbracoDbDSN = "${{ secrets.UMBRACO_DB_DSN }}"
-              umbracoDbDSN_ProviderName = "Microsoft.Data.SqlClient"
-          }
-          # Add the uSync setting to trigger an import on application startup.
-          $json.uSync = @{
-              Settings = @{
-                  ImportAtStartup = $true
-              }
-          }
-          # To fix the 'serialization has exceeded the set depth' warning, we increase the depth.
-          $json | ConvertTo-Json -Depth 4 | Set-Content 'app_publish/appsettings.json'
+          # Use 'jq' to modify the JSON file.
+          # We use a single, chained command to ensure all modifications are atomic.
+          # - .ConnectionStrings sets the entire ConnectionStrings object.
+          # - .uSync.Settings.ImportAtStartup sets the boolean value in the nested object.
+          # The output is written to a temporary file and then moved to prevent
+          # potential issues with in-place file editing.
+          jq \
+            --arg dsn "${{ secrets.UMBRACO_DB_DSN }}" \
+            '.ConnectionStrings = {
+                "umbracoDbDSN": $dsn,
+                "umbracoDbDSN_ProviderName": "Microsoft.Data.SqlClient"
+             } |
+             .uSync.Settings.ImportAtStartup = true' \
+            app_publish/appsettings.json > app_publish/appsettings.json.tmp && \
+            mv app_publish/appsettings.json.tmp app_publish/appsettings.json
     
       # Use the new custom SFTP deployer action
       - name: SFTP Upload to Fasthosts using custom action
