@@ -208,6 +208,7 @@ runs:
         echo "::endgroup::"
 
     - name: "Generate rm commands"
+      if: -s files_to_remove.txt
       shell: bash
       id: generate_commands_rm
       run: |
@@ -233,7 +234,13 @@ runs:
               ;;
           esac
         done < files_to_remove.txt
-                
+        echo "::endgroup::"
+
+    - name: "End commands file"
+      shell: bash
+      run: |
+        echo "::group::End commands file"
+
         echo "bye" >> lftp_commands.txt
         echo "::endgroup::"
     
