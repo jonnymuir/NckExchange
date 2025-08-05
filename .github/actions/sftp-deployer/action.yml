@@ -138,6 +138,9 @@ runs:
             "${{ inputs.remote-port }}" >> lftp_commands.txt
         fi
 
+        echo "DEBUG EXIT"
+        throw "Debugging output for dry run only. Exiting." && exit 0
+
         # Get files to add or update
         join -t$'\t' -v 1 local_sorted.txt remote_sorted.txt | awk -F'\t' '{print $2}' > files_to_add_update.txt
         join -t$'\t' local_sorted.txt remote_sorted.txt | awk -F'\t' '{if ($2 != $3) print $1}' >> files_to_add_update.txt
