@@ -101,8 +101,8 @@ runs:
         sed -i -E 's/[\r[:space:]]+$//' "${{ inputs.local-path }}/checksums.txt"
         sed -i -E 's/[\r[:space:]]+$//' remote_checksums.txt
 
-        sed -i 's/[[:space:]]\t/\t/g; s/[ \t]*$//' "${{ inputs.local-path }}/checksums.txt"
-        sed -i 's/[[:space:]]\t/\t/g; s/[ \t]*$//' remote_checksums.txt
+        sed -i -E 's/[[:space:]]\t/\t/g; s/[ \t]*$//' "${{ inputs.local-path }}/checksums.txt"
+        sed -i -E 's/[[:space:]]\t/\t/g; s/[ \t]*$//' remote_checksums.txt
 
         sort -t$'\t' -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
         sort -t$'\t' -k 2,2 remote_checksums.txt > remote_sorted.txt
