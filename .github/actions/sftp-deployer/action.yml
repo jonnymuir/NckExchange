@@ -66,7 +66,8 @@ runs:
         
         cd "${{ inputs.local-path }}"
         
-        find . -type f -printf '%P\n' | xargs md5sum > checksums.txt
+        # Use find's -print0 and xargs' -0 to handle all filenames and produce clean, tab-separated output.
+        find . -type f -print0 | xargs -0 md5sum > checksums.txt
         
         echo "::endgroup::"
     
@@ -85,9 +86,10 @@ runs:
       run: |
         echo "::group::Comparing checksums and preparing commands"
         
-        # Use LC_ALL=C to ensure consistent sorting for the join command.
-        LC_ALL=C sort -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
-        LC_ALL=C sort -k 2,2 remote_checksums.txt > remote_sorted.txt
+        # Use LC_ALL=C and a tab separator for consistent sorting.
+        # The output from the "Generate local checksums" step is already tab-separated.
+        LC_ALL=C sort -t$'\t' -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
+        LC_ALL=C sort -t$'\t' -k 2,2 remote_checksums.txt > remote_sorted.txt
         
         echo "# lftp commands generated for deployment" > lftp_commands.txt
         
@@ -113,8 +115,8 @@ runs:
         fi
 
         # Get files to add or update
-        join -v 1 local_sorted.txt remote_sorted.txt | awk '{print $2}' > files_to_add_update.txt
-        join local_sorted.txt remote_sorted.txt | awk '{if ($2 != $3) print $1}' >> files_to_add_update.txt
+        join -t$'\t' -v 1 local_sorted.txt remote_sorted.txt | awk -F'\t' '{print $2}' > files_to_add_update.txt
+        join -t$'\t' local_sorted.txt remote_sorted.txt | awk -F'\t' '{if ($2 != $3) print $1}' >> files_to_add_update.txt
         
         cat files_to_add_update.txt | sort -u > all_files_to_deploy.txt
 
@@ -133,7 +135,7 @@ runs:
         done < all_files_to_deploy.txt
 
         # Get files to remove (on remote but not on local)
-        join -v 1 remote_sorted.txt local_sorted.txt | while read -r checksum file; do
+        join -t$'\t' -v 1 remote_sorted.txt local_sorted.txt | while IFS=$'\t' read -r checksum file; do
           case "$file" in
             "app_offline.htm")
               printf "Skipping removal of maintenance page: %s\n" "$file" >> lftp_commands.txt
