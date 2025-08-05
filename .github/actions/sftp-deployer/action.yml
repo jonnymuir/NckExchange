@@ -66,7 +66,8 @@ runs:
         
         cd "${{ inputs.local-path }}"
         
-        # Use find's -print0 and xargs' -0 to handle all filenames and produce clean, tab-separated output.
+        # Use find's -print0 and xargs' -0 to handle all filenames and produce
+        # checksums with a consistent space separator.
         find . -type f -print0 | xargs -0 md5sum > checksums.txt
         
         echo "::endgroup::"
@@ -86,8 +87,13 @@ runs:
       run: |
         echo "::group::Comparing checksums and preparing commands"
         
+        # Standardize both files to a tab-separated format for consistent sorting
+        # This replaces one or more spaces at the beginning of the filename
+        # with a single tab, ensuring a clean format for join.
+        sed -i -E 's/^([0-9a-f]{32})[[:space:]]+/\1\t/' "${{ inputs.local-path }}/checksums.txt"
+        sed -i -E 's/^([0-9a-f]{32})[[:space:]]+/\1\t/' remote_checksums.txt
+
         # Use LC_ALL=C and a tab separator for consistent sorting.
-        # The output from the "Generate local checksums" step is already tab-separated.
         LC_ALL=C sort -t$'\t' -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
         LC_ALL=C sort -t$'\t' -k 2,2 remote_checksums.txt > remote_sorted.txt
         
