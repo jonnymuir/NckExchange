@@ -144,10 +144,14 @@ runs:
       shell: bash
       id: generate_commands_update
       run: |
-        echo "::group::Filed to update"
+        echo "::group::Files to update"
 
         # Get files to add or update
+
+        echo "join -v"
         join -t$'\t' -v 1 local_sorted.txt remote_sorted.txt | awk -F'\t' '{print $2}' > files_to_add_update.txt
+        
+        echo "join"
         join -t$'\t' local_sorted.txt remote_sorted.txt | awk -F'\t' '{if ($2 != $3) print $1}' >> files_to_add_update.txt
 
         cat files_to_add_update.txt | sort -u > all_files_to_deploy.txt
@@ -245,6 +249,11 @@ runs:
       shell: bash
       run: |
         echo "::group::Removing app_offline.htm to bring site online"
+
+        mkdir -p ./temp/usync/v9
+        touch ./temp/usync/v9/usync.once
+
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
+                  put \"./temp/usync/v9/usync.once\" -o $\"{{inputs.remote-path}}/uSync/v9/usync.once\"; \
                   rm \"${{inputs.remote-path}}/app_offline.htm\""
         echo "::endgroup::"

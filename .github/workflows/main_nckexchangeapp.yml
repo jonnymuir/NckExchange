@@ -45,25 +45,6 @@ jobs:
       - name: dotnet publish
         run: dotnet publish -c Release -o "publish" --no-self-contained
 
-      - name: Create appsettings.json for Production
-        run: |
-          # The Windows runner uses PowerShell.
-          # We read the JSON file into a mutable hashtable to safely add or replace the section.
-          # This avoids the error where the 'ConnectionStrings' property is not found initially.
-          $json = Get-Content 'publish/appsettings.json' | Out-String | ConvertFrom-Json -AsHashtable
-          $json.ConnectionStrings = @{
-              umbracoDbDSN = "${{ secrets.UMBRACO_DB_DSN }}"
-              umbracoDbDSN_ProviderName = "Microsoft.Data.SqlClient"
-          }
-          # Add the uSync setting to trigger an import on application startup.
-          $json.uSync = @{
-              Settings = @{
-                  ImportAtStartup = $true
-              }
-          }
-          # To fix the 'serialization has exceeded the set depth' warning, we increase the depth.
-          $json | ConvertTo-Json -Depth 4 | Set-Content 'publish/appsettings.json'
-
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -86,6 +67,25 @@ jobs:
           name: .net-app
           path: ./app_publish
       
+      - name: Create appsettings.json for Production
+        run: |
+          # The Windows runner uses PowerShell.
+          # We read the JSON file into a mutable hashtable to safely add or replace the section.
+          # This avoids the error where the 'ConnectionStrings' property is not found initially.
+          $json = Get-Content 'app_publish/appsettings.json' | Out-String | ConvertFrom-Json -AsHashtable
+          $json.ConnectionStrings = @{
+              umbracoDbDSN = "${{ secrets.UMBRACO_DB_DSN }}"
+              umbracoDbDSN_ProviderName = "Microsoft.Data.SqlClient"
+          }
+          # Add the uSync setting to trigger an import on application startup.
+          $json.uSync = @{
+              Settings = @{
+                  ImportAtStartup = $true
+              }
+          }
+          # To fix the 'serialization has exceeded the set depth' warning, we increase the depth.
+          $json | ConvertTo-Json -Depth 4 | Set-Content 'app_publish/appsettings.json'
+    
       # Use the new custom SFTP deployer action
       - name: SFTP Upload to Fasthosts using custom action
         # This assumes your new custom action is located at '.github/actions/sftp-deployer'
