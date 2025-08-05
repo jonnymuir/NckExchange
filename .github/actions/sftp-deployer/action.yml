@@ -130,8 +130,8 @@ runs:
 
         echo "::endgroup::"
 
-    - name: "Upload debug files"
-      if: failure() && inputs.dry-run == 'true'
+    - name: "lftp_commands.txt: Upload checksum files"
+      if: inputs.dry-run == 'true'
       uses: actions/upload-artifact@v3
       with:
         name: sorted-checksum-files
@@ -207,13 +207,14 @@ runs:
         lftp -f lftp_commands.txt
         echo "::endgroup::"
 
-    - name: "Dry Run: Displaying commands only"
+    - name: "Dry Run: Upload LFTP command files"
       if: inputs.dry-run == 'true'
-      shell: bash
-      run: |
-        echo "::group::Dry Run - The following commands would have been executed:"
-        cat lftp_commands.txt
-        echo "::endgroup::"
+      uses: actions/upload-artifact@v3
+      with:
+        name: lftp_commands-files
+        path: |
+          lftp_commands.txt
+        retention-days: 1
 
     - name: "Upload new checksums file"
       if: inputs.dry-run == 'false'
