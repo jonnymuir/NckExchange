@@ -58,7 +58,7 @@ jobs:
           # Add the uSync setting to trigger an import on application startup.
           $json.uSync = @{
               Settings = @{
-                  Import = $true
+                  ImportAtStartup = $true
               }
           }
           # To fix the 'serialization has exceeded the set depth' warning, we increase the depth.

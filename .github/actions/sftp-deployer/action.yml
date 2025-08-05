@@ -140,18 +140,25 @@ runs:
           remote_sorted.txt
         retention-days: 1
     
-    - name: "Generate lftp commands"
+    - name: "Generate files to update"
       shell: bash
-      id: generate_commands
+      id: generate_commands_update
       run: |
-        echo "::group::Preparing commands"
+        echo "::group::Filed to update"
 
         # Get files to add or update
         join -t$'\t' -v 1 local_sorted.txt remote_sorted.txt | awk -F'\t' '{print $2}' > files_to_add_update.txt
         join -t$'\t' local_sorted.txt remote_sorted.txt | awk -F'\t' '{if ($2 != $3) print $1}' >> files_to_add_update.txt
-        
-        cat files_to_add_update.txt | sort -u > all_files_to_deploy.txt
 
+        cat files_to_add_update.txt | sort -u > all_files_to_deploy.txt
+        echo "::endgroup::"
+
+
+    - name: "Generate create ftp commands"
+      shell: bash
+      id: generate_commands_ftp
+      run: |
+        echo "::group::Create ftp commands"
         declare -A created_dirs
         while IFS= read -r file; do
           remote_file="${{ inputs.remote-path }}/$file"
@@ -165,6 +172,14 @@ runs:
           local_file="${{ inputs.local-path }}/$file"
           printf 'put "%s" -o "%s";\n' "$local_file" "$remote_file" >> lftp_commands.txt
         done < all_files_to_deploy.txt
+        echo "::endgroup::"
+
+    - name: "Generate rm commands"
+      shell: bash
+      id: generate_commands_rm
+      run: |
+
+        echo "::group::Create rm commands"
 
         # Get files to remove (on remote but not on local)
         join -t$'\t' -v 1 remote_sorted.txt local_sorted.txt | while IFS=$'\t' read -r checksum file; do
