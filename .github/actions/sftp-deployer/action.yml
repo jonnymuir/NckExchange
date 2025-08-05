@@ -132,7 +132,7 @@ runs:
 
     - name: "lftp_commands.txt: Upload checksum files"
       if: inputs.dry-run == 'true'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: sorted-checksum-files
         path: |
@@ -209,7 +209,7 @@ runs:
 
     - name: "Dry Run: Upload LFTP command files"
       if: inputs.dry-run == 'true'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: lftp_commands-files
         path: |
