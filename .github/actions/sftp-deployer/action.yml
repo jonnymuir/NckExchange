@@ -153,15 +153,37 @@ runs:
       run: |
         echo "::group::Files to update"
 
-        # Get files to add or update
+        awk -F'\t' '
+        BEGIN {
+            FS="\t";
+            deploy_file = "all_files_to_deploy.txt";
+            remove_file = "files_to_remove.txt";
+        }
+        FNR==NR {
+            local_files[$2] = $1;
+            next;
+        }
+        {
+            remote_file = $2;
+            remote_checksum = $1;
 
-        echo "join -v"
-        LC_ALL=C join -t$'\t' -v 1 local_sorted.txt remote_sorted.txt | awk -F'\t' '{print $2}' > files_to_add_update.txt
-        
-        echo "join"
-        LC_ALL=C join -t$'\t' local_sorted.txt remote_sorted.txt | awk -F'\t' '{if ($2 != $3) print $1}' >> files_to_add_update.txt
+            if (remote_file in local_files) {
+                local_checksum = local_files[remote_file];
+                if (local_checksum != remote_checksum) {
+                    print remote_file > deploy_file;
+                }
+                delete local_files[remote_file];
+            } else {
+                print remote_file > remove_file;
+            }
+        }
+        END {
+            for (new_file in local_files) {
+                print new_file > deploy_file;
+            }
+        }
+        ' local_sorted.txt remote_sorted.txt
 
-        cat files_to_add_update.txt | sort -u > all_files_to_deploy.txt
         echo "::endgroup::"
 
 
@@ -192,8 +214,7 @@ runs:
 
         echo "::group::Create rm commands"
 
-        # Get files to remove (on remote but not on local)
-        LC_ALL=C join -t$'\t' -v 1 remote_sorted.txt local_sorted.txt | while IFS=$'\t' read -r checksum file; do
+        while IFS=$'\n' read -r file; do
           case "$file" in
             "app_offline.htm")
               printf "Skipping removal of maintenance page: %s\n" "$file" >> lftp_commands.txt
@@ -211,8 +232,8 @@ runs:
               printf 'rm "%s/%s";\n' "${{ inputs.remote-path }}" "$file" >> lftp_commands.txt
               ;;
           esac
-        done
-        
+        done < files_to_remove.txt
+                
         echo "bye" >> lftp_commands.txt
         echo "::endgroup::"
     
