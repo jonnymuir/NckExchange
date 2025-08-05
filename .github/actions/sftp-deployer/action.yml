@@ -208,32 +208,37 @@ runs:
         echo "::endgroup::"
 
     - name: "Generate rm commands"
-      if: -s files_to_remove.txt
       shell: bash
       id: generate_commands_rm
       run: |
 
         echo "::group::Create rm commands"
 
-        while IFS=$'\n' read -r file; do
-          case "$file" in
-            "app_offline.htm")
-              printf "Skipping removal of maintenance page: %s\n" "$file" >> lftp_commands.txt
-              ;;
-            wwwroot/umbraco/Data/*)
-              printf "Skipping removal of Umbraco Data file: %s\n" "$file" >> lftp_commands.txt
-              ;;
-            wwwroot/umbraco/Logs/*)
-              printf "Skipping removal of Umbraco Logs file: %s\n" "$file" >> lftp_commands.txt
-              ;;
-            wwwroot/media/*)
-              printf "Skipping removal of Umbraco Media file: %s\n" "$file" >> lftp_commands.txt
-              ;;
-            *)
-              printf 'rm "%s/%s";\n' "${{ inputs.remote-path }}" "$file" >> lftp_commands.txt
-              ;;
-          esac
-        done < files_to_remove.txt
+        if [ -s files_to_remove.txt ]; then
+
+          while IFS=$'\n' read -r file; do
+            case "$file" in
+              "app_offline.htm")
+                printf "Skipping removal of maintenance page: %s\n" "$file" >> lftp_commands.txt
+                ;;
+              wwwroot/umbraco/Data/*)
+                printf "Skipping removal of Umbraco Data file: %s\n" "$file" >> lftp_commands.txt
+                ;;
+              wwwroot/umbraco/Logs/*)
+                printf "Skipping removal of Umbraco Logs file: %s\n" "$file" >> lftp_commands.txt
+                ;;
+              wwwroot/media/*)
+                printf "Skipping removal of Umbraco Media file: %s\n" "$file" >> lftp_commands.txt
+                ;;
+              *)
+                printf 'rm "%s/%s";\n' "${{ inputs.remote-path }}" "$file" >> lftp_commands.txt
+                ;;
+            esac
+          done < files_to_remove.txt
+
+        else
+          echo "No files to remove."
+        fi
         echo "::endgroup::"
 
     - name: "End commands file"
