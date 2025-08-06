@@ -1,0 +1,22 @@
+{
+  "name": "nckexchange",
+  "version": "1.0.0",
+  "description": "NckExchange is a web application built with Umbraco CMS (.NET 8) designed for flexible content management and modern web experiences.",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonnymuir/NckExchange.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jonnymuir/NckExchange/issues"
+  },
+  "homepage": "https://github.com/jonnymuir/NckExchange#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "@types/node": "^24.2.0"
+  }
+}

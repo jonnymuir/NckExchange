@@ -481,3 +481,8 @@ appsettings-schema.*.json
 
 # Media files
 **/wwwroot/media/
+
+# Playwright
+/playwright-report/
+/blob-report/
+/playwright/.cache/

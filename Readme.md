@@ -67,6 +67,10 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 dotnet publish -c Release --no-self-contained
 ```
 
+## Test
+```
+npx playwright test
+```
 ## License
 [MIT](LICENSE)
 
