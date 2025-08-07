@@ -10,9 +10,14 @@
 		<a href="@Model.Content.Link.Url" target="@Model.Content.Link.Target"
 		title="@Model.Content.Link.Name">
 		<div class="portfolio-item-caption d-flex align-items-center justify-content-center h-100 w-100">
-			<div class="portfolio-item-caption-content text-center text-white"><i class="fas fa-plus fa-3x"></i></div>
+			<div class="portfolio-item-caption-content text-center text-white"><svg style="display: inline-block;
+				height: 1em;
+				overflow: visible;
+				vertical-align: -.125em;
+				font-size: 3em;
+				box-sizing: content-box;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512" fill="currentColor"><path fill="currentColor" d="M240 80c0-17.7-14.3-32-32-32s-32 14.3-32 32V224H32c-17.7 0-32 14.3-32 32s14.3 32 32 32H176V432c0 17.7 14.3 32 32 32s32-14.3 32-32V288H384c17.7 0 32-14.3 32-32s-14.3-32-32-32H240V80z"></path></svg></div>
 		</div>
-		<img class="img-fluid" src="@Model.Content.Image.GetCropUrl(400, 290)" alt="@Model.Content.Image.GetAltText()"
+		<img class="img-fluid" src="@Model.Content.Image.GetCropUrl(400, 290)&format=webp" alt="@Model.Content.Image.GetAltText()"
 			width="400" height="290" />
 		</a>
 	</div>
