@@ -51,6 +51,7 @@ runs:
     - name: "Install dependencies"
       shell: bash
       run: |
+        set +x
         echo "::group::Install packages"
         DEBIAN_FRONTEND=noninteractive sudo apt-get update && sudo apt-get install --no-install-recommends -y lftp
         echo "::endgroup::"
@@ -58,6 +59,7 @@ runs:
     - name: "Generate local checksums"
       shell: bash
       run: |
+        set +x
         echo "::group::Generating checksums for local files"
         if [ ! -d "${{ inputs.local-path }}" ]; then
           echo "Error: Local path '${{ inputs.local-path }}' is not a directory. Exiting."
@@ -75,6 +77,7 @@ runs:
     - name: "Download remote checksums"
       shell: bash
       run: |
+        set +x
         echo "::group::Attempting to download remote checksum file"
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
                   get -O . \"${{inputs.remote-path}}/checksums.txt\" || rm \"./checksums.txt\"" &>/dev/null || true
@@ -85,6 +88,7 @@ runs:
       shell: bash
       id: generate_checksums
       run: |
+        set +x
         echo "::group::Comparing checksums"
         
         # Standardize both files to a tab-separated format
@@ -107,9 +111,6 @@ runs:
         LC_ALL=C sort -t$'\t' -k 2,2 "${{ inputs.local-path }}/checksums.txt" > local_sorted.txt
         LC_ALL=C sort -t$'\t' -k 2,2 remote_checksums.txt > remote_sorted.txt
         
-        hexdump -C local_sorted.txt > local_sorted_hex.txt
-        hexdump -C remote_sorted.txt > remote_sorted_hex.txt
-
         echo "# lftp commands generated for deployment" > lftp_commands.txt
         
         if [ "${{ inputs.debug-mode }}" == "true" ]; then
@@ -143,14 +144,13 @@ runs:
         path: |
           local_sorted.txt
           remote_sorted.txt
-          local_sorted_hex.txt
-          remote_sorted_hex.txt
         retention-days: 1
     
     - name: "Generate files to update"
       shell: bash
       id: generate_commands_update
       run: |
+        set +x
         echo "::group::Files to update"
 
         awk -F'\t' '
@@ -191,6 +191,7 @@ runs:
       shell: bash
       id: generate_commands_ftp
       run: |
+        set +x
         echo "::group::Create ftp commands"
         declare -A created_dirs
         while IFS= read -r file; do
@@ -211,7 +212,7 @@ runs:
       shell: bash
       id: generate_commands_rm
       run: |
-
+        set +x
         echo "::group::Create rm commands"
 
         if [ -s files_to_remove.txt ]; then
@@ -244,6 +245,7 @@ runs:
     - name: "End commands file"
       shell: bash
       run: |
+        set +x
         echo "::group::End commands file"
 
         echo "bye" >> lftp_commands.txt
@@ -253,6 +255,7 @@ runs:
       if: inputs.dry-run == 'false'
       shell: bash
       run: |
+        set +x
         echo "::group::Creating maintenance page app_offline.htm to take site offline"
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
                   put \"${{inputs.maintenance-page-path}}\" -o \"${{inputs.remote-path}}/app_offline.htm\""
@@ -262,6 +265,7 @@ runs:
       if: inputs.dry-run == 'false'
       shell: bash
       run: |
+        set +x
         echo "::group::Executing deployment commands"
         lftp -f lftp_commands.txt
         echo "::endgroup::"
@@ -279,6 +283,7 @@ runs:
       if: inputs.dry-run == 'false'
       shell: bash
       run: |
+        set +x
         echo "::group::Uploading new checksums file"
         lftp -c "set sftp:auto-confirm yes; open ${{inputs.remote-protocol}}://${{inputs.remote-user}}:${{inputs.remote-password}}@${{inputs.remote-host}}:${{inputs.remote-port}}; \
                   put \"${{inputs.local-path}}/checksums.txt\" -o \"${{inputs.remote-path}}/checksums.txt\""
@@ -288,6 +293,7 @@ runs:
       if: inputs.dry-run == 'false'
       shell: bash
       run: |
+        set +x
         echo "::group::Removing app_offline.htm to bring site online"
 
         mkdir -p ./temp/usync/v9

@@ -69,6 +69,7 @@ jobs:
       
       - name: Create appsettings.json for Production
         run: |
+          set +x
           # Use 'jq' to modify the JSON file.
           # We use a single, chained command to ensure all modifications are atomic.
           # - .ConnectionStrings sets the entire ConnectionStrings object.
@@ -97,10 +98,8 @@ jobs:
           local-path: './app_publish/'
           remote-path: '/htdocs/'
           maintenance-page-path: './app_offline.htm'
-          # Pass the new inputs from the manual trigger to the action
-          dry-run: ${{ github.event.inputs.dry-run }}
-          debug-mode: ${{ github.event.inputs.debug-mode }}
-
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry-run || false }}
+          debug-mode: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug-mode || false }}
   # New job to run Playwright smoke tests after deployment
   e2e_tests:
     runs-on: ubuntu-latest
