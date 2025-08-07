@@ -39,11 +39,11 @@ inputs:
   dry-run:
     description: "If true, the action will only print the commands without executing them."
     required: false
-    default: "false"
+    default: false
   debug-mode:
     description: "If true, the lftp commands will run in verbose debug mode."
     required: false
-    default: "false"
+    default: false
 
 runs:
   using: "composite"
