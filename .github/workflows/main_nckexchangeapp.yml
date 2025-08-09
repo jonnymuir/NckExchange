@@ -275,8 +275,7 @@ jobs:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Creating maintenance page app_offline.htm to take site offline"
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -c "set sftp:auto-confirm yes; \
-                    put \"app_offline.htm\" -o \"htdocs/app_offline.htm\""
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put 'app_offline.htm' -o 'htdocs/app_offline.htm'"
           echo "::endgroup::"
           
       - name: "Execute lftp commands"
@@ -321,10 +320,7 @@ jobs:
 
           mkdir -p ./temp/usync/v9
           touch ./temp/usync/v9/usync.once
-
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -c "set sftp:auto-confirm yes; \
-                    put \"./temp/usync/v9/usync.once\" -o \"htdocs/uSync/v9/usync.once\"; \
-                    rm \"htdocs/app_offline.htm\""
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put './temp/usync/v9/usync.once' -o 'htdocs/uSync/v9/usync.once'; rm 'htdocs/app_offline.htm'"
           echo "::endgroup::"
       
   e2e_tests:
