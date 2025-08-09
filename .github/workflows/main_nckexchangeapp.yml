@@ -106,8 +106,11 @@ jobs:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Attempting to download remote checksum file"
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -c "set sftp:auto-confirm yes; \
-                    get -O . \"/htdocs/checksums.txt\" || rm \"./checksums.txt\"" &>/dev/null || true
+          lftp -c "open sftp://${SFTP_USERNAME}:${SFTP_PASSWORD}@${SFTP_HOST}; \
+            set sftp:auto-confirm yes; \
+            get -O . /htdocs/checksums.txt || rm ./checksums.txt; \
+            bye"
+          
           mv checksums.txt remote_checksums.txt || touch remote_checksums.txt
           echo "::endgroup::"
 
