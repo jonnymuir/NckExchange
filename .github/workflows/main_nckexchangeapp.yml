@@ -156,7 +156,7 @@ jobs:
           echo "::endgroup::"
 
       - name: "lftp_commands.txt: Upload checksum files"
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry-run == true || false }}
+        if: ${{ github.event.inputs.dry-run == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: sorted-checksum-files
@@ -267,7 +267,7 @@ jobs:
           echo "::endgroup::"
       
       - name: "Put site in maintenance mode"
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry-run == false || github.event_name != 'workflow_dispatch' }}
+        if: ${{ github.event.inputs.dry-run != 'true' }}
         shell: bash
         env:
           SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
@@ -279,7 +279,7 @@ jobs:
           echo "::endgroup::"
           
       - name: "Execute lftp commands"
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry-run == false || github.event_name != 'workflow_dispatch' }}
+        if: ${{ github.event.inputs.dry-run != 'true' }}
         shell: bash
         run: |
           echo "::group::Executing deployment commands"
@@ -287,7 +287,7 @@ jobs:
           echo "::endgroup::"
 
       - name: "Dry Run: Upload LFTP command files"
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry-run == true || false }}
+        if: ${{ github.event.inputs.dry-run == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: lftp_commands-files
@@ -296,7 +296,7 @@ jobs:
           retention-days: 1
 
       - name: "Upload new checksums file"
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry-run == false || github.event_name != 'workflow_dispatch' }}
+        if: ${{ github.event.inputs.dry-run != 'true' }}
         shell: bash
         env:
           SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
@@ -309,7 +309,7 @@ jobs:
           echo "::endgroup::"
 
       - name: "Take site out of maintenance mode"
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry-run == false || github.event_name != 'workflow_dispatch' }}
+        if: ${{ github.event.inputs.dry-run != 'true' }}
         shell: bash
         env:
           SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
