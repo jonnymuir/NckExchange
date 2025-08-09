@@ -63,15 +63,13 @@ jobs:
           path: ./app_publish
       
       - name: Create appsettings.json for Production
+        env:
+          UMBRACO_DB_DSN: ${{ secrets.UMBRACO_DB_DSN }}
         run: |
           # Use 'jq' to modify the JSON file.
-          # We use a single, chained command to ensure all modifications are atomic.
-          # - .ConnectionStrings sets the entire ConnectionStrings object.
-          # - .uSync.Settings.ImportAtStartup sets the boolean value in the nested object.
-          # The output is written to a temporary file and then moved to prevent
-          # potential issues with in-place file editing.
+          # The DSN is now passed via an environment variable.
           jq \
-            --arg dsn "${{ secrets.UMBRACO_DB_DSN }}" \
+            --arg dsn "$UMBRACO_DB_DSN" \
             '.ConnectionStrings = {
                 "umbracoDbDSN": $dsn,
                 "umbracoDbDSN_ProviderName": "Microsoft.Data.SqlClient"
