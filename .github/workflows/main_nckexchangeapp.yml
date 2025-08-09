@@ -102,9 +102,13 @@ jobs:
       
       - name: "Download remote checksums"
         shell: bash
+        env:
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Attempting to download remote checksum file"
-          lftp -c "set sftp:auto-confirm yes; open sftp://${{ secrets.SFTP_USERNAME }}:${{ secrets.SFTP_PASSWORD }}@${{ secrets.SFTP_HOST }}:22; \
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -c "set sftp:auto-confirm yes; \
                     get -O . \"app_publish/checksums.txt\" || rm \"./checksums.txt\"" &>/dev/null || true
           mv checksums.txt remote_checksums.txt || touch remote_checksums.txt
           echo "::endgroup::"
@@ -112,6 +116,10 @@ jobs:
       - name: "Compare checksums"
         shell: bash
         id: generate_checksums
+        env:
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Comparing checksums"
           
@@ -139,12 +147,12 @@ jobs:
 
           # Conditional open command for security
           if [ "${{ github.event.inputs.dry-run }}" == "true" ]; then
-            printf 'open "sftp://[USER]:[PASSWORD]@[HOST]:22";\n' >> lftp_commands.txt
+            printf 'open "sftp://[USER]@[HOST]:22";\n' >> lftp_commands.txt
           else
             printf 'open "sftp://%s:%s@%s:22";\n' \
-              "${{ secrets.SFTP_USERNAME }}" \
-              "${{ secrets.SFTP_PASSWORD }}" \
-              "${{ secrets.SFTP_HOST }}" >> lftp_commands.txt
+              "${SFTP_USERNAME}" \
+              "${SFTP_PASSWORD}" \
+              "${SFTP_HOST}" >> lftp_commands.txt
           fi
 
           echo "::endgroup::"
@@ -263,9 +271,13 @@ jobs:
       - name: "Put site in maintenance mode"
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry-run == false || github.event_name != 'workflow_dispatch' }}
         shell: bash
+        env:
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Creating maintenance page app_offline.htm to take site offline"
-          lftp -c "set sftp:auto-confirm yes; open sftp://${{ secrets.SFTP_USERNAME }}:${{ secrets.SFTP_PASSWORD }}@${{ secrets.SFTP_HOST }}:22; \
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -c "set sftp:auto-confirm yes; \
                     put \"app_offline.htm\" -o \"htdocs/app_offline.htm\""
           echo "::endgroup::"
           
@@ -289,23 +301,31 @@ jobs:
       - name: "Upload new checksums file"
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry-run == false || github.event_name != 'workflow_dispatch' }}
         shell: bash
+        env:
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Uploading new checksums file"
-          lftp -c "set sftp:auto-confirm yes; open sftp://${{ secrets.SFTP_USERNAME }}:${{ secrets.SFTP_PASSWORD }}@${{ secrets.SFTP_HOST }}:22; \
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -c "set sftp:auto-confirm yes; \
                     put \"app_publish/checksums.txt\" -o \"htdocs/checksums.txt\""
           echo "::endgroup::"
 
       - name: "Take site out of maintenance mode"
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry-run == false || github.event_name != 'workflow_dispatch' }}
         shell: bash
+        env:
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Removing app_offline.htm to bring site online"
 
           mkdir -p ./temp/usync/v9
           touch ./temp/usync/v9/usync.once
 
-          lftp -c "set sftp:auto-confirm yes; open sftp://${{ secrets.SFTP_USERNAME }}:${{ secrets.SFTP_PASSWORD }}@${{ secrets.SFTP_HOST }}:22; \
-                    put \"./temp/usync/v9/usync.once\" -o $\"htdocs/uSync/v9/usync.once\"; \
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -c "set sftp:auto-confirm yes; \
+                    put \"./temp/usync/v9/usync.once\" -o \"htdocs/uSync/v9/usync.once\"; \
                     rm \"htdocs/app_offline.htm\""
           echo "::endgroup::"
       
