@@ -1,4 +1,11 @@
-﻿@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.ImageLink>>
+﻿@using Umbraco.Extensions
+@using ContentModels = Umbraco.Cms.Web.Common.PublishedModels;
+@using Umbraco.Cms.Web.Common.Views
+@using Umbraco.Cms.Core.Models.Blocks
+@using Umbraco.Cms.Core.Models.PublishedContent
+@using Microsoft.AspNetCore.Html
+@using NckExchange.Extensions
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.ImageLink>>
 
 @if (Model?.Content?.Image == null || Model?.Content?.Link == null)
 {

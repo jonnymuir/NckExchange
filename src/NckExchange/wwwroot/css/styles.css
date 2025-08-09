@@ -11069,3 +11069,23 @@ html {
     white-space: nowrap;
     border-width: 0;
 }
+
+.icon-link {
+  fill: #fff;
+}
+
+a.btn:hover .icon-link {
+  fill: #000;
+  transition: fill 0.25s ease-in-out;
+}
+
+.svg-inline--fa {
+  display: inline-block;
+  height: 1em;
+  overflow: visible;
+  vertical-align: -0.125em;
+}
+
+.fa-fw {
+  width: 1.25em;
+}

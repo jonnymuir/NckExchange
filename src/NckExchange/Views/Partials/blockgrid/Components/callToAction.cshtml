@@ -1,0 +1,67 @@
+﻿@using Umbraco.Cms.Web.Common.PublishedModels
+@using Umbraco.Extensions
+@using ContentModels = Umbraco.Cms.Web.Common.PublishedModels;
+@using Umbraco.Cms.Web.Common.Views
+@using Umbraco.Cms.Core.Models.Blocks
+@using Umbraco.Cms.Core.Models.PublishedContent
+@using Microsoft.AspNetCore.Html
+@using NckExchange.Extensions
+
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.CallToAction>>
+
+@{
+    const int TITLE_AREA = 0;
+    const int CONTENT_AREA = 1;
+    const int LINK_AREA = 2;
+}
+
+<section class="page-section bg-primary text-white mb-0" id="about">
+	<div class="container">
+        <div class="text-white">
+            @await Html.GetBlockGridItemAreaHtmlAsync(Model.Areas.ElementAt(TITLE_AREA))
+        </div>
+
+        @{
+            var linkArea = Model.Areas.ElementAtOrDefault(LINK_AREA);
+            var contentArea = Model.Areas.ElementAtOrDefault(CONTENT_AREA);
+        }
+
+        @if(contentArea != null && contentArea.Any())
+        {
+            var classToApply = contentArea.Count > 1 ? "ms-auto" : "mx-auto";
+
+            foreach (var item in contentArea)
+            {
+                var richText = item.Content as RichText;
+                if(richText != null && richText.Text != null)
+                {
+                    <div class="col-lg-@item.ColumnSpan @classToApply">
+                        @richText.Text
+                    </div>
+                    classToApply = classToApply == "ms-auto" ? "me-auto" : "ms-auto";
+                }
+            }
+        }
+
+        @if(linkArea != null && linkArea.Any())
+        {
+            foreach (var area in linkArea)
+            {
+                var iconLink = area.Content as IconLink;
+                
+                if(iconLink != null && iconLink.Link != null)
+                {
+                    <div class="text-center mt-4">
+                        <a class="btn btn-xl btn-outline-light" href="@iconLink.Link.Url" target="@iconLink.Link.Target">
+                            <span class="icon-link">
+                                <our-svg media-item="iconLink.Icon" class="svg-inline--fa fa-fw text-white"></our-svg>
+                            </span>
+                            @iconLink.Link.Name
+                        </a>
+                    </div>
+                }
+            }
+
+        }
+	</div>
+</section>

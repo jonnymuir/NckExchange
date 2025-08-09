@@ -1,4 +1,12 @@
-﻿@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FooterContent>>
+﻿@using Umbraco.Extensions
+@using ContentModels = Umbraco.Cms.Web.Common.PublishedModels;
+@using Umbraco.Cms.Web.Common.Views
+@using Umbraco.Cms.Core.Models.Blocks
+@using Umbraco.Cms.Core.Models.PublishedContent
+@using Microsoft.AspNetCore.Html
+@using NckExchange.Extensions
+
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.FooterContent>>
 
 <h4 class="text-uppercase mb-4">@Model.Content.Title</h4>
 @Model.Content.Text

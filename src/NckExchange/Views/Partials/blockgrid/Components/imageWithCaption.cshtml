@@ -1,0 +1,22 @@
+﻿@using Umbraco.Extensions
+@using ContentModels = Umbraco.Cms.Web.Common.PublishedModels;
+@using Umbraco.Cms.Web.Common.Views
+@using Umbraco.Cms.Core.Models.Blocks
+@using Umbraco.Cms.Core.Models.PublishedContent
+@using Microsoft.AspNetCore.Html
+@using NckExchange.Extensions
+
+@inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.ImageWithCaption>>
+
+@if (Model?.Content?.Image == null) return;
+
+<section class="page-section bg-white text-white mb-0">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <img class="img-fluid" src="@Model.Content.Image.Url()" alt="@Model.Content.Image.GetAltText()"/>
+                <p class="text-dark text-center fst-italic">@Model.Content.Caption</p>
+            </div>
+        </div>
+    </div>
+</section>

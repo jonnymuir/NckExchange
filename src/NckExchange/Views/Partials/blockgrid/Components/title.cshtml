@@ -1,10 +1,17 @@
-﻿@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.Title>>
+﻿@using Umbraco.Extensions
+@using ContentModels = Umbraco.Cms.Web.Common.PublishedModels;
+@using Umbraco.Cms.Web.Common.Views
+@using Umbraco.Cms.Core.Models.Blocks
+@using Umbraco.Cms.Core.Models.PublishedContent
+@using Microsoft.AspNetCore.Html
+@using NckExchange.Extensions
+
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.Title>>
 
 @{
     var text_colour_class = Model.Content.Colour != null ? "text-" + Model.Content.Colour.Label.ToLower() : "secondary";
     var divider_colour_class = Model.Content.Colour != null && Model.Content.Colour.Label == "White" ? "divider-light" : null;
 }
-
 <h2 class="page-section-heading text-center text-uppercase @(text_colour_class) mb-0">@Model.Content.Text</h2>
 <!-- Icon Divider-->
 <div class="divider-custom @(divider_colour_class)">
