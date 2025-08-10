@@ -1,8 +1,11 @@
+using Slimsy.DependencyInjection;
+
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 var umbracoBuilder = builder.CreateUmbracoBuilder()
     .AddBackOffice()
     .AddWebsite()
+    .AddSlimsy()
     .AddDeliveryApi()
     .AddComposers();
  

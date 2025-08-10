@@ -5,8 +5,12 @@
 @using Umbraco.Cms.Core.Models.PublishedContent
 @using Microsoft.AspNetCore.Html
 @using NckExchange.Extensions
+@using Slimsy.Enums
+@using Slimsy.Extensions
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @addTagHelper *, Smidge
 @addTagHelper *, Our.Umbraco.TagHelpers
+@addTagHelper *, Slimsy
 @inject Smidge.SmidgeHelper SmidgeHelper
+@inject Slimsy.Services.SlimsyService SlimsyService

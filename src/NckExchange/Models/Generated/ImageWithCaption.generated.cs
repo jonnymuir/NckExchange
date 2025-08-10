@@ -58,11 +58,33 @@ namespace Umbraco.Cms.Web.Common.PublishedModels
 		public virtual string Caption => this.Value<string>(_publishedValueFallback, "caption");
 
 		///<summary>
+		/// Further Crop Options: Further image sharp crop options (e.g rmode=crop&amp;rxy=0.0,0.0)
+		///</summary>
+		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "13.9.2+b414456")]
+		[global::System.Diagnostics.CodeAnalysis.MaybeNull]
+		[ImplementPropertyType("furtherCropOptions")]
+		public virtual string FurtherCropOptions => this.Value<string>(_publishedValueFallback, "furtherCropOptions");
+
+		///<summary>
 		/// Image: Choose the image for this item
 		///</summary>
 		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "13.9.2+b414456")]
 		[global::System.Diagnostics.CodeAnalysis.MaybeNull]
 		[ImplementPropertyType("image")]
 		public virtual global::Umbraco.Cms.Core.Models.MediaWithCrops Image => this.Value<global::Umbraco.Cms.Core.Models.MediaWithCrops>(_publishedValueFallback, "image");
+
+		///<summary>
+		/// Image Height: Choose a height for this image
+		///</summary>
+		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "13.9.2+b414456")]
+		[ImplementPropertyType("imageHeight")]
+		public virtual int ImageHeight => this.Value<int>(_publishedValueFallback, "imageHeight");
+
+		///<summary>
+		/// Image Width: Choose a width for this image
+		///</summary>
+		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "13.9.2+b414456")]
+		[ImplementPropertyType("imageWidth")]
+		public virtual int ImageWidth => this.Value<int>(_publishedValueFallback, "imageWidth");
 	}
 }

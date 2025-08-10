@@ -50,6 +50,14 @@ namespace Umbraco.Cms.Web.Common.PublishedModels
 		// properties
 
 		///<summary>
+		/// Crop Focus: Valid options are left or right. If your image isn't of the ratio 400 by 290 then you have the option of keeping it cropped to the left hand side or the right hand side. Defaults to left.
+		///</summary>
+		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "13.9.2+b414456")]
+		[global::System.Diagnostics.CodeAnalysis.MaybeNull]
+		[ImplementPropertyType("cropFocus")]
+		public virtual string CropFocus => this.Value<string>(_publishedValueFallback, "cropFocus");
+
+		///<summary>
 		/// Image: Choose the image for this item
 		///</summary>
 		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "13.9.2+b414456")]

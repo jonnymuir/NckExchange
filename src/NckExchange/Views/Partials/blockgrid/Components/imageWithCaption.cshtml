@@ -5,18 +5,32 @@
 @using Umbraco.Cms.Core.Models.PublishedContent
 @using Microsoft.AspNetCore.Html
 @using NckExchange.Extensions
+@using Slimsy.Enums
+@using Slimsy.Extensions
 
 @inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.ImageWithCaption>>
 
 @if (Model?.Content?.Image == null) return;
 
-<section class="page-section bg-white text-white mb-0">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <img class="img-fluid" src="@Model.Content.Image.Url()" alt="@Model.Content.Image.GetAltText()"/>
-                <p class="text-dark text-center fst-italic">@Model.Content.Caption</p>
+@{
+    int imageWidth = Model.Content.ImageWidth > 0 ? Model.Content.ImageWidth : 800;
+    int imageHeight = Model.Content.ImageHeight > 0 ? Model.Content.ImageHeight : 580;
+    string furtherOptions = (string.IsNullOrEmpty(Model.Content.FurtherCropOptions) ? "" : Model.Content.FurtherCropOptions + "&") + "format=webp";
+}
+
+<div class="container mb-4">
+    <div class="row">
+        <div class="col-lg-@Model.ColumnSpan mx-auto">
+            <div class="mx-auto d-flex justify-content-center">
+                <div class="bg-white p-4 rounded shadow">
+                    <img class="img-fluid lazyload"
+                        data-srcset="@Url.GetSrcSetUrls(Model.Content.Image, imageWidth, imageHeight, furtherOptions: furtherOptions)"
+                        src="@Model.Content.Image.GetCropUrl(imageWidth / 10, imageHeight / 10, quality: 40, furtherOptions: furtherOptions )"
+                        alt="@Model.Content.Image.GetAltText()" sizes="auto" width="@imageWidth"
+                        height="@imageHeight" />
+                    <p class="text-dark text-center fst-italic">@Model.Content.Caption</p>
+                </div>
             </div>
         </div>
     </div>
-</section>
+</div>
