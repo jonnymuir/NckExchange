@@ -8,7 +8,7 @@ var umbracoBuilder = builder.CreateUmbracoBuilder()
     .AddSlimsy()
     .AddDeliveryApi()
     .AddComposers();
- 
+
 // Conditionally add Azure Blob services
 if (!string.IsNullOrEmpty(builder.Configuration["Umbraco:Storage:AzureBlob:MediaFileSystem:ConnectionString"]))
 {
@@ -27,7 +27,7 @@ if (!string.IsNullOrEmpty(builder.Configuration["Umbraco:Storage:AzureBlob:Image
 }
 else
 {
-    Console.WriteLine("Azure Blob ImageSharp Cache not added (config missing)."); 
+    Console.WriteLine("Azure Blob ImageSharp Cache not added (config missing).");
 }
 
 umbracoBuilder.Build();
