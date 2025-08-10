@@ -307,8 +307,7 @@ jobs:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Uploading new checksums file"
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -c "set sftp:auto-confirm yes; \
-                    put \"app_publish/checksums.txt\" -o \"/htdocs/checksums.txt\""
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put 'app_publish/checksums.txt' -o '/htdocs/checksums.txt'"
           echo "::endgroup::"
 
       - name: "Take site out of maintenance mode"
