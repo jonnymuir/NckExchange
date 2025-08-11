@@ -11,7 +11,10 @@
     <div class="row justify-content-center">
         <div class="col-lg-6">
             <div class="p-5 bg-white rounded-3 shadow">
-                <form action="https://formspree.io/f/mkgzkook" method="POST" class="text-center">
+                <form id="contactForm" action="/api/ContactApi/SubmitMessage" method="POST" class="text-center">
+                    <!-- Anti-forgery token is crucial for security -->
+                    @Html.AntiForgeryToken() 
+
                     <div class="mb-3">
                         <label for="name" class="form-label visually-hidden">Your Name</label>
                         <input type="text" id="name" name="name" class="form-control" placeholder="Your Name" required>
@@ -25,8 +28,67 @@
                         <textarea id="message" name="message" class="form-control" rows="5" placeholder="Your Message" required></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Send</button>
+
+                    <!-- Message display area -->
+                    <div id="formMessage" class="mt-3" style="display: none;"></div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    // JavaScript for AJAX form submission
+    document.addEventListener('DOMContentLoaded', function () {
+        const contactForm = document.getElementById('contactForm');
+        const formMessage = document.getElementById('formMessage');
+
+        contactForm.addEventListener('submit', async function (event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData(contactForm);
+            const submitButton = contactForm.querySelector('button[type="submit"]');
+
+            submitButton.disabled = true; // Disable button to prevent multiple submissions
+            formMessage.style.display = 'none'; // Hide previous messages
+
+            try {
+                const response = await fetch(contactForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        // Include the anti-forgery token from the form
+                        'RequestVerificationToken': formData.get('__RequestVerificationToken') 
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    formMessage.textContent = data.message;
+                    formMessage.className = 'mt-3 alert alert-success';
+                    contactForm.reset(); // Clear the form on success
+                } else {
+                    let errorMessage = data.message || 'An unexpected error occurred.';
+                    if (data.errors) {
+                        // Display specific validation errors if available
+                        for (const key in data.errors) {
+                            if (data.errors.hasOwnProperty(key)) {
+                                errorMessage += `\n${key}: ${data.errors[key].join(', ')}`;
+                            }
+                        }
+                    }
+                    formMessage.textContent = errorMessage;
+                    formMessage.className = 'mt-3 alert alert-danger';
+                }
+            } catch (error) {
+                console.error('Form submission error:', error);
+                formMessage.textContent = 'There was a network error. Please try again later.';
+                formMessage.className = 'mt-3 alert alert-danger';
+            } finally {
+                formMessage.style.display = 'block'; // Show the message
+                submitButton.disabled = false; // Re-enable the button
+            }
+        });
+    });
+</script>

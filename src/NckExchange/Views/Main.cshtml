@@ -1,30 +1,9 @@
 ﻿@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
 @{
-	Layout = null;
+	Layout = "_Layout";
+    ViewData["Title"] = ViewData["Title"] = Model.Name;
 }
 
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-		@await Html.PartialAsync("metaData")
-        <title>The Exchange</title>
-        <link rel="icon" type="image/x-icon" href="/assets/favicon.ico?v=2" />
-        <!--<script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>-->
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet" type="text/css" />
-        <link href="/css/styles.css" rel="stylesheet" asp-append-version="true"/>
-    </head>
-    <body id="page-top">
-		@await Html.PartialAsync("mainNavigation")
-
-		@RenderBody()
-
-		@await Html.PartialAsync("footer")
-
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-        <script src="/js/scripts.js" asp-append-version="true"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.3.2/lazysizes.min.js" integrity="sha512-q583ppKrCRc7N5O0n2nzUiJ+suUv7Et1JGels4bXOaMFQcamPk9HjdUknZuuFjBNs7tsMuadge5k9RzdmO+1GQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    </body>
-</html>
+@await Html.PartialAsync("mainNavigation")
+@RenderBody()
+@await Html.PartialAsync("footer")

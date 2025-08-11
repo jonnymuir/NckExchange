@@ -1,0 +1,52 @@
+@model NckExchange.Models.AdminReplyViewModel
+@{
+    // Set the page title and ensure it uses your main website layout
+    ViewData["Title"] = "Reply to Message";
+    Layout = "_Layout"; 
+}
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="p-5 bg-white rounded-3 shadow">
+                <h1 class="mb-4 text-center">Reply to Message</h1>
+
+                <form asp-controller="AdminMessages" asp-action="Reply" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="OriginalSenderEmail" />
+
+                    <div class="mb-3">
+                        <label asp-for="OriginalSenderName" class="form-label fw-bold">From:</label>
+                        <input type="text" asp-for="OriginalSenderName" class="form-control" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="OriginalMessage" class="form-label fw-bold">Original Message:</label>
+                        <textarea asp-for="OriginalMessage" class="form-control" rows="5" readonly></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Answer" class="form-label fw-bold">Your Reply:</label>
+                        <textarea asp-for="Answer" class="form-control" rows="10" placeholder="Type your answer here..." required></textarea>
+                        <span asp-validation-for="Answer" class="text-danger small mt-1"></span>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-send-fill"></i> Send Reply</button>
+                        <a asp-controller="AdminMessages" asp-action="Index" class="btn btn-secondary"><i class="bi bi-x-circle-fill"></i> Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Include Bootstrap Icons for visual flair and client-side validation scripts -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <partial name="_ValidationScriptsPartial" /> 
+}
