@@ -63,21 +63,33 @@ jobs:
           path: ./app_publish
       
       - name: Create appsettings.json for Production
-        env:
-          UMBRACO_DB_DSN: ${{ secrets.UMBRACO_DB_DSN }}
-        run: |
-          # Use 'jq' to modify the JSON file.
-          # The DSN is now passed via an environment variable.
-          jq \
-            --arg dsn "$UMBRACO_DB_DSN" \
-            '.ConnectionStrings = {
-                "umbracoDbDSN": $dsn,
-                "umbracoDbDSN_ProviderName": "Microsoft.Data.SqlClient"
-             } |
-             .uSync.Settings.ImportAtStartup = true' \
-            app_publish/appsettings.json > app_publish/appsettings.json.tmp && \
-            mv app_publish/appsettings.json.tmp app_publish/appsettings.json
-    
+    env:
+      UMBRACO_DB_DSN: ${{ secrets.UMBRACO_DB_DSN }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+    run: |
+      # Use 'jq' to modify the JSON file.
+      # The DSN and SMTP credentials are now passed via environment variables.
+      jq \
+        --arg dsn "$UMBRACO_DB_DSN" \
+        --arg smtpUsername "$SMTP_USERNAME" \
+        --arg smtpPassword "$SMTP_PASSWORD" \
+        '.ConnectionStrings = {
+            "umbracoDbDSN": $dsn,
+            "umbracoDbDSN_ProviderName": "Microsoft.Data.SqlClient"
+         } |
+         .uSync.Settings.ImportAtStartup = true |
+         .Umbraco.CMS.Global.Smtp = {
+            "Host": "smtp.livemail.co.uk",
+            "Port": 25,
+            "Username": $smtpUsername,
+            "Password": $smtpPassword,
+            "EnableSsl": true,
+            "From": "support@theexchange-tod.com"
+         }' \
+        app_publish/appsettings.json > app_publish/appsettings.json.tmp && \
+        mv app_publish/appsettings.json.tmp app_publish/appsettings.json
+            
       # Upload to Fasthosts
       - name: "Install dependencies"
         shell: bash

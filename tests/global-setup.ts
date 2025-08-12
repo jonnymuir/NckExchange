@@ -1,6 +1,11 @@
 // global-setup.ts
 import { chromium, type FullConfig } from '@playwright/test';
 
+// tests/global-setup.ts
+// ...
+import playwrightConfig from '../playwright.config';
+const baseURL = playwrightConfig.use?.baseURL;
+
 async function globalSetup(config: FullConfig) {
   console.log('Starting global setup...');
   
@@ -11,7 +16,7 @@ async function globalSetup(config: FullConfig) {
   const page = await browser.newPage();
   
   // Navigate to the base URL and wait for the page to be ready
-  await page.goto("/", { timeout: timeoutInMilliseconds });
+  await page.goto(baseURL!, { timeout: timeoutInMilliseconds });
 
   await page.waitForSelector('body', { timeout: timeoutInMilliseconds });
 

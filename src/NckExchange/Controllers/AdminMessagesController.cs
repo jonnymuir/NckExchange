@@ -5,6 +5,8 @@ using NckExchange.Models; // Your AdminReplyViewModel
 using Umbraco.Cms.Core.Mail; // For Umbraco's email sender service
 using System.Security.Claims; // For getting current user's email
 using Umbraco.Cms.Infrastructure.Scoping;
+using System.Net;
+using NPoco;
 
 namespace NckExchange.Controllers;
 
@@ -16,17 +18,43 @@ public class AdminMessagesController(
     IEmailSender emailSender) : Controller
 {
     // GET: /admin/messages
-    // Displays a list of all contact messages.
-    public async Task<IActionResult> Index()
+    // Displays a list of all contact messages with optional limit and status filter.
+    public async Task<IActionResult> Index(int? limit, bool? isAnswered)
     {
         List<ContactMessage> messages;
-        using (var scope = scopeProvider.CreateScope()) // Create a read-only scope
+        using (var scope = scopeProvider.CreateScope())
         {
-            var database = scope.Database; ;
-            // Fetch messages, ordered by IsAnswered (unanswered first) then by DateSubmitted (newest first)
-            messages = [.. await database.FetchAsync<ContactMessage>("ORDER BY IsAnswered ASC, DateSubmitted DESC")];
-            scope.Complete(); // Complete the scope for read operations
+            var database = scope.Database;
+            
+            var sql = new Sql("SELECT * FROM ContactMessages");
+
+            if (isAnswered.HasValue)
+            {
+                sql.Append(" WHERE IsAnswered = @0", [isAnswered.Value]);
+            }
+
+            // Always order messages (unanswered first, then newest first)
+            sql.Append(" ORDER BY IsAnswered ASC, DateSubmitted DESC");
+
+            int actualLimit = limit.GetValueOrDefault(100);
+            
+            if (actualLimit > 0)
+            {
+                var pagedMessages = await database.PageAsync<ContactMessage>(1, actualLimit, sql);
+                messages = [.. pagedMessages.Items];
+            }
+            else
+            {
+                // If limit is 0, fetch all messages (no limit applied)
+                messages = [.. await database.FetchAsync<ContactMessage>(sql)];
+            }
+            
+            scope.Complete();
         }
+
+        ViewData["CurrentLimit"] = limit.HasValue && limit.Value > 0 ? limit.Value : 100;
+        ViewData["CurrentIsAnswered"] = isAnswered;
+
         return View(messages);
     }
 
@@ -64,9 +92,9 @@ public class AdminMessagesController(
 
     // POST: /admin/messages/reply
     // Handles the submission of the reply form.
-    [HttpPost("reply")]
+    [HttpPost("reply/{id:int}")]
     [ValidateAntiForgeryToken] // Protect against Cross-Site Request Forgery
-    public async Task<IActionResult> Reply([FromForm] AdminReplyViewModel model)
+    public async Task<IActionResult> Reply([FromForm] AdminReplyViewModel model,int id)
     {
         if (!ModelState.IsValid)
         {
@@ -145,14 +173,14 @@ public class AdminMessagesController(
                     </style>
                 </head>
                 <body>
-                    <p>Dear {originalSenderName ?? "Customer"},</p>
+                    <p>Dear {WebUtility.HtmlEncode(originalSenderName ?? "Customer")},</p>
                     <p>Thank you for contacting us. Your original message was:</p>
                     <blockquote>
                         <p><strong>Original Message:</strong></p>
-                        <p>{originalMessage}</p>
+                        <p>{WebUtility.HtmlEncode(originalMessage)}</p>
                     </blockquote>
                     <p>Here is our response:</p>
-                    <p>{answer}</p>
+                    <p>{WebUtility.HtmlEncode(answer)}</p>
                     <p>If you have any further questions, please do not hesitate to reply to this email.</p>
                     <p>Cheers,<br/>The Exchange Tod Support Team</p>
                 </body>
@@ -160,15 +188,23 @@ public class AdminMessagesController(
 
         // Create an EmailMessage object for Umbraco's IEmailSender service
         var emailMessage = new Umbraco.Cms.Core.Models.Email.EmailMessage(
-            to: senderEmail,
-            from: recipientEmail,
+            to: recipientEmail,
+            from: senderEmail,
             subject: subject,
             body: body,
             isBodyHtml: true // Important: Set to true for HTML emails
         );
 
         // Send the email. "ContactMessageReply" is an optional tag for logging/tracking.
-        await emailSender.SendAsync(emailMessage, "ContactMessageReply");
-        logger.LogInformation("Email reply sent to {RecipientEmail} for message ID {MessageId}", recipientEmail, model.Id);
+        try
+        {
+            await emailSender.SendAsync(emailMessage, "ContactMessageReply");
+            logger.LogInformation("Email reply sent to {RecipientEmail} for message ID {MessageId}", recipientEmail, model.Id);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send email reply to {RecipientEmail} for message ID {MessageId}. Check SMTP configuration.", recipientEmail, model.Id);
+            throw; // Re-throw to ensure the calling method's catch block handles it
+        }
     }
 }
