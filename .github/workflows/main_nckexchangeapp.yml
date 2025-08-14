@@ -67,6 +67,8 @@ jobs:
       UMBRACO_DB_DSN: ${{ secrets.UMBRACO_DB_DSN }}
       SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      GOOGLE_CLIENTID: ${{ secrets.GOOGLE_CLIENTID }},
+      GOOGLE_CLIENTSECRET: ${{ secrets.GOOGLE_CLIENTSECRET }}
     run: |
       # Use 'jq' to modify the JSON file.
       # The DSN and SMTP credentials are now passed via environment variables.
@@ -74,6 +76,8 @@ jobs:
         --arg dsn "$UMBRACO_DB_DSN" \
         --arg smtpUsername "$SMTP_USERNAME" \
         --arg smtpPassword "$SMTP_PASSWORD" \
+        --arg googleClientID "$GOOGLE_CLIENTID" \
+        --arg googleClientSecret "$GOOGLE_CLIENTSECRET" \
         '.ConnectionStrings = {
             "umbracoDbDSN": $dsn,
             "umbracoDbDSN_ProviderName": "Microsoft.Data.SqlClient"
@@ -86,6 +90,10 @@ jobs:
             "Password": $smtpPassword,
             "EnableSsl": true,
             "From": "support@theexchange-tod.com"
+         } |
+         .Authentication.Google = {
+            "ClientId": $googleClientID,
+            "ClientSecret": $googleClientSecret
          }' \
         app_publish/appsettings.json > app_publish/appsettings.json.tmp && \
         mv app_publish/appsettings.json.tmp app_publish/appsettings.json

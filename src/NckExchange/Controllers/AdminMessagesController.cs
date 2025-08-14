@@ -10,7 +10,7 @@ using NPoco;
 
 namespace NckExchange.Controllers;
 
-//[Authorize(Roles = "Administrator")] // Only users with 'Administrator' role can access this controller
+[Authorize(Roles = "Administrator")] // Only users with 'Administrator' role can access this controller
 [Route("admin/messages")] // Base route for this controller
 public class AdminMessagesController(
     IScopeProvider scopeProvider,

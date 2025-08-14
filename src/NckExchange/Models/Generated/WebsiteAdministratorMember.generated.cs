@@ -18,43 +18,35 @@ using Umbraco.Extensions;
 
 namespace Umbraco.Cms.Web.Common.PublishedModels
 {
-	/// <summary>Page Tag</summary>
-	[PublishedModel("pageTag")]
-	public partial class PageTag : PublishedContentModel
+	/// <summary>Website Administrator Member</summary>
+	[PublishedModel("websiteAdministratorMember")]
+	public partial class WebsiteAdministratorMember : PublishedContentModel
 	{
 		// helpers
 #pragma warning disable 0109 // new is redundant
 		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "13.9.3+9f37db1")]
-		public new const string ModelTypeAlias = "pageTag";
+		public new const string ModelTypeAlias = "websiteAdministratorMember";
 		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "13.9.3+9f37db1")]
-		public new const PublishedItemType ModelItemType = PublishedItemType.Content;
+		public new const PublishedItemType ModelItemType = PublishedItemType.Member;
 		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "13.9.3+9f37db1")]
 		[return: global::System.Diagnostics.CodeAnalysis.MaybeNull]
 		public new static IPublishedContentType GetModelContentType(IPublishedSnapshotAccessor publishedSnapshotAccessor)
 			=> PublishedModelUtility.GetModelContentType(publishedSnapshotAccessor, ModelItemType, ModelTypeAlias);
 		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "13.9.3+9f37db1")]
 		[return: global::System.Diagnostics.CodeAnalysis.MaybeNull]
-		public static IPublishedPropertyType GetModelPropertyType<TValue>(IPublishedSnapshotAccessor publishedSnapshotAccessor, Expression<Func<PageTag, TValue>> selector)
+		public static IPublishedPropertyType GetModelPropertyType<TValue>(IPublishedSnapshotAccessor publishedSnapshotAccessor, Expression<Func<WebsiteAdministratorMember, TValue>> selector)
 			=> PublishedModelUtility.GetModelPropertyType(GetModelContentType(publishedSnapshotAccessor), selector);
 #pragma warning restore 0109
 
 		private IPublishedValueFallback _publishedValueFallback;
 
 		// ctor
-		public PageTag(IPublishedContent content, IPublishedValueFallback publishedValueFallback)
+		public WebsiteAdministratorMember(IPublishedContent content, IPublishedValueFallback publishedValueFallback)
 			: base(content, publishedValueFallback)
 		{
 			_publishedValueFallback = publishedValueFallback;
 		}
 
 		// properties
-
-		///<summary>
-		/// Tag Alias: This will be set when a tag is created. It is purposely not editable so you can't change it as it will be used for querying.
-		///</summary>
-		[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Umbraco.ModelsBuilder.Embedded", "13.9.3+9f37db1")]
-		[global::System.Diagnostics.CodeAnalysis.MaybeNull]
-		[ImplementPropertyType("tagAlias")]
-		public virtual string TagAlias => this.Value<string>(_publishedValueFallback, "tagAlias");
 	}
 }
