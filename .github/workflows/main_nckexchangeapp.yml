@@ -302,7 +302,7 @@ jobs:
           lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put 'app_offline.htm' -o '/htdocs/app_offline.htm'"
           echo "::endgroup::"
           
-      - name: "Execute lftp commands"
+      - name: "Execute lftp commands with retries"
         if: ${{ github.event.inputs.dry-run != 'true' }}
         shell: bash
         run: |
@@ -310,20 +310,31 @@ jobs:
           MAX_RETRIES=5
           RETRY_DELAY=10
           ATTEMPT=1
+          
           while [ $ATTEMPT -le $MAX_RETRIES ]; do
             echo "Attempt $ATTEMPT of $MAX_RETRIES"
-            if lftp -f lftp_commands.txt; then
-              echo "Deployment successful."
-              exit 0
-            else
-              echo "Deployment failed. Retrying in $RETRY_DELAY seconds..."
+            
+            # Capture the output of the lftp command
+            OUTPUT=$(lftp -f lftp_commands.txt 2>&1)
+            
+            # Check if the output contains the specific error message.
+            # The || true at the end prevents grep from failing the script
+            # if the string is not found, allowing the 'if' condition to handle the logic.
+            if echo "$OUTPUT" | grep -q "Access failed: I/O error." || echo "$OUTPUT" | grep -q "Transfer failed"; then
+              echo "Deployment failed due to I/O error or failed transfer. Retrying in $RETRY_DELAY seconds..."
+              echo "$OUTPUT" # Print the output for debugging
               sleep $RETRY_DELAY
               ATTEMPT=$((ATTEMPT+1))
+            else
+              echo "Deployment successful."
+              echo "$OUTPUT" # Print the output for successful run
+              exit 0
             fi
           done
+          
           echo "Deployment failed after $MAX_RETRIES attempts."
           exit 1
-          echo "::endgroup::"
+          echo "::endgroup::"      
       - name: "Dry Run: Upload LFTP command files"
         if: ${{ github.event.inputs.dry-run == 'true' }}
         uses: actions/upload-artifact@v4
