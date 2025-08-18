@@ -164,7 +164,8 @@ jobs:
           LC_ALL=C sort -t$'\t' -k 2,2 "app_publish/checksums.txt" > local_sorted.txt
           LC_ALL=C sort -t$'\t' -k 2,2 remote_checksums.txt > remote_sorted.txt
           
-          echo "# lftp commands generated for deployment" > lftp_commands.txt
+          echo "# lftp commands generated for deployment\n" > lftp_commands.txt
+          echo "set sftp:auto-confirm yes\n" >> lftp_commands.txt
 
           # Conditional open command for security
           if [ "${{ github.event.inputs.dry-run }}" == "true" ]; then
