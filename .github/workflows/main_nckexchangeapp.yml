@@ -305,10 +305,24 @@ jobs:
         if: ${{ github.event.inputs.dry-run != 'true' }}
         shell: bash
         run: |
-          echo "::group::Executing deployment commands"
-          lftp -f lftp_commands.txt
+          echo "::group::Executing deployment commands with retries"
+          MAX_RETRIES=5
+          RETRY_DELAY=10
+          ATTEMPT=1
+          while [ $ATTEMPT -le $MAX_RETRIES ]; do
+            echo "Attempt $ATTEMPT of $MAX_RETRIES"
+            if lftp -f lftp_commands.txt; then
+              echo "Deployment successful."
+              exit 0
+            else
+              echo "Deployment failed. Retrying in $RETRY_DELAY seconds..."
+              sleep $RETRY_DELAY
+              ATTEMPT=$((ATTEMPT+1))
+            fi
+          done
+          echo "Deployment failed after $MAX_RETRIES attempts."
+          exit 1
           echo "::endgroup::"
-
       - name: "Dry Run: Upload LFTP command files"
         if: ${{ github.event.inputs.dry-run == 'true' }}
         uses: actions/upload-artifact@v4
