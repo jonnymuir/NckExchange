@@ -37,6 +37,10 @@
 		.Where(x => x.EventDateTime > DateTime.Now)
 		.OrderBy(x => x.EventDateTime);
 	}
+
+	string? upcomingURL = Url.Action("Index", "EventsPage", new { showPastEvents = false });
+	string? pastURL = Url.Action("Index", "EventsPage", new { showPastEvents = true });
+
 }
 
 @await Html.GetBlockGridHtmlAsync(Model, "headerContent")
@@ -45,9 +49,9 @@
 <div class="container my-5">
 
 	<div class="d-flex justify-content-center mb-4">
-		<a href="@Url.Action("Index", "EventsPage", new { showPastEvents = false })"
+		<a href="@upcomingURL"
 			class="btn btn-@(showPastEvents ? "outline-primary" : "primary") me-2">Upcoming Events</a>
-		<a href="@Url.Action("Index", "EventsPage", new { showPastEvents = true })"
+		<a href="@pastURL"
 			class="btn btn-@(showPastEvents ? "primary" : "outline-primary")">Past Events</a>
 	</div>
 

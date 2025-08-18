@@ -73,8 +73,6 @@ WebApplication app = builder.Build();
 
 await app.BootUmbracoAsync();
 
-// Ensure these authentication and authorization middleware are in the pipeline
-// and placed before routing middleware. They should already be present in your app.
 app.UseAuthentication();
 app.UseAuthorization();
 
