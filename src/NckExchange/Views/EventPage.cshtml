@@ -1,0 +1,99 @@
+﻿@using Umbraco.Cms.Core.Models
+@using Umbraco.Cms.Web.Common.PublishedModels
+@using Umbraco.Extensions
+@using ContentModels = Umbraco.Cms.Web.Common.PublishedModels;
+@using Umbraco.Cms.Web.Common.Views
+@using Umbraco.Cms.Core.Models.Blocks
+@using Umbraco.Cms.Core.Models.PublishedContent
+@using Microsoft.AspNetCore.Html
+@using NckExchange.Extensions
+@using Slimsy.Enums
+@using Slimsy.Extensions
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<ContentModels.Event>
+
+@{
+	Layout = "Main.cshtml";
+	ViewData["Title"] = Model.EventTitle;
+	var headerContent = Model.Value<IEnumerable<BlockGridItem>>("headerContent");
+	int h = 240;
+	int w = 240;
+	if ( Model.EventImage is MediaWithCrops mediaWithCrops)
+	{
+		if (mediaWithCrops.Content is Image img)
+		{
+			w = img.UmbracoWidth /img.UmbracoHeight * 240;
+		}
+	}
+}
+
+@if (headerContent != null && headerContent.Any())
+{
+	@await Html.GetBlockGridHtmlAsync(Model, "headerContent")
+}
+else
+{
+	<header class="masthead bg-primary text-white text-center mb-4">
+		<div class="container d-flex align-items-center flex-column">
+			@if (Model.EventImage != null)
+			{
+				<img class="img-fluid lazyload rounded-3 mb-5"
+					data-srcset="@Url.GetSrcSetUrls(Model.EventImage, w, h, furtherOptions: "format=webp")"
+					src="@Model.EventImage.GetCropUrl(w/10, h/10, quality: 40)&format=webp" alt="@Model.EventImage.GetAltText()"
+					sizes="auto"
+					style="height: 240px; object-fit: contain;"/>
+			}
+
+			<h1 class="masthead-heading text-uppercase mb-0">@Model.EventTitle</h1>
+
+			@if (!string.IsNullOrEmpty(Model.ShortDescription))
+			{
+				<div class="divider-custom divider-light">
+					<div class="divider-custom-line"></div>
+					<div class="divider-custom-icon"><svg
+							style="display: inline-block; height: 1em; overflow: visible; vertical-align: -.125em; box-sizing: content-box;"
+							xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" fill="currentColor">
+							<path
+								d="M309.5-18.9c-4.1-8-12.4-13.1-21.4-13.1s-17.3 5.1-21.4 13.1L193.1 125.3 33.2 150.7c-8.9 1.4-16.3 7.7-19.1 16.3s-.5 18 5.8 24.4l114.4 114.5-25.2 159.9c-1.4 8.9 2.3 17.9 9.6 23.2s16.9 6.1 25 2L288.1 417.6 432.4 491c8 4.1 17.7 3.3 25-2s11-14.2 9.6-23.2L441.7 305.9 556.1 191.4c6.4-6.4 8.6-15.8 5.8-24.4s-10.1-14.9-19.1-16.3L383 125.3 309.5-18.9z" />
+						</svg></div>
+					<div class="divider-custom-line"></div>
+				</div>
+
+				<p class="masthead-subheading font-weight-light mb-0">@Model.ShortDescription</p>
+			}
+		</div>
+	</header>
+}
+
+<div class="container my-5">
+	<div class="row">
+		<div class="col">
+			<ul class="list-unstyled text-center">
+				<li class="mb-2">
+					<i class="bi bi-calendar me-2" aria-hidden="true"></i>
+					<strong>Date & Time:</strong> @(Model.ComingSoon ? "Coming Soon" : Model.EventDateTime.ToString("dd MMMM yyyy HH:mm"))
+				</li>
+				@if (!string.IsNullOrWhiteSpace(Model.Location))
+				{
+					<li class="mb-2">
+						<i class="bi bi-geo-alt me-2" aria-hidden="true"></i>
+						<strong>Location:</strong> @Model.Location
+					</li>
+				}
+				@{
+					var bookingLink = Model.BookingLink;
+					if (bookingLink != null && !string.IsNullOrWhiteSpace(bookingLink.Url))
+					{
+						<li class="mt-3">
+							<a href="@bookingLink.Url" target="@(bookingLink.Target)" class="btn btn-primary btn-lg"
+								aria-label="Book your spot for @bookingLink.Name">
+								<i class="bi bi-ticket-fill me-2" aria-hidden="true"></i> @bookingLink.Name
+							</a>
+						</li>
+					}
+				}
+			</ul>
+		</div>
+	</div>
+</div>
+
+@await Html.GetBlockGridHtmlAsync(Model, "mainContent")

@@ -1,0 +1,113 @@
+﻿@using Umbraco.Cms.Core.Models
+@using Umbraco.Cms.Web.Common.PublishedModels
+@using Umbraco.Extensions
+@using ContentModels = Umbraco.Cms.Web.Common.PublishedModels;
+@using Umbraco.Cms.Web.Common.Views
+@using Umbraco.Cms.Core.Models.Blocks
+@using Umbraco.Cms.Core.Models.PublishedContent
+@using Microsoft.AspNetCore.Html
+@using NckExchange.Extensions
+@using Slimsy.Enums
+@using Slimsy.Extensions
+@inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage<ContentModels.Events>
+
+@{
+	Layout = "Main.cshtml";
+	ViewData["Title"] = Model.Name; // Use the page's name for the browser title
+
+	// Get filter for past/future events from query string
+	bool showPastEvents = Context.Request.Query["showPastEvents"].ToString().Equals("true",
+	StringComparison.OrdinalIgnoreCase);
+
+	// Get all child nodes of type 'event' (as per your usync alias)
+	var allEvents = Model.ChildrenOfType("event")?
+	.Cast<ContentModels.Event>(); // Cast to your strongly typed Event model
+
+	// Filter events based on 'showPastEvents' query string parameter
+	IEnumerable<ContentModels.Event>? filteredEvents;
+	if (showPastEvents)
+	{
+		// Show all events, ordered by date descending (newest first for past events)
+		filteredEvents = allEvents?.OrderByDescending(x => x.EventDateTime);
+	}
+	else
+	{
+		// Default: Only show future events, ordered by date ascending (upcoming first)
+		filteredEvents = allEvents?
+		.Where(x => x.EventDateTime > DateTime.Now)
+		.OrderBy(x => x.EventDateTime);
+	}
+}
+
+@await Html.GetBlockGridHtmlAsync(Model, "headerContent")
+@await Html.GetBlockGridHtmlAsync(Model, "mainContent")
+
+<div class="container my-5">
+
+	<div class="d-flex justify-content-center mb-4">
+		<a href="@Url.Action("Index", "EventsPage", new { showPastEvents = false })"
+			class="btn btn-@(showPastEvents ? "outline-primary" : "primary") me-2">Upcoming Events</a>
+		<a href="@Url.Action("Index", "EventsPage", new { showPastEvents = true })"
+			class="btn btn-@(showPastEvents ? "primary" : "outline-primary")">Past Events</a>
+	</div>
+
+	@if (filteredEvents != null && filteredEvents.Any())
+	{
+		<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+			@foreach (var eventItem in filteredEvents)
+			{
+				<div class="col">
+					<div class="card h-100 shadow-sm border-0 pt-3 rounded-lg overflow-hidden">
+
+						<div class="d-flex justify-content-center gap-2 mt-auto">
+							<a href="@eventItem.Url()" aria-label="Read more about @eventItem.EventTitle">
+								View Details
+							</a>
+						</div>
+
+						@if (eventItem.EventImage != null)
+						{
+							int h = 200;
+							int w = 200;
+							if ( eventItem.EventImage is MediaWithCrops mediaWithCrops)
+							{
+								if (mediaWithCrops.Content is Image img)
+								{
+									w = img.UmbracoWidth /img.UmbracoHeight * 200;
+								}
+							}
+							
+							<div class="d-flex justify-content-center gap-2 mt-auto">
+								<img class="img-fluid lazyload rounded-3"
+									data-srcset="@Url.GetSrcSetUrls(eventItem.EventImage, w, h, furtherOptions: "format=webp")"
+									src="@eventItem.EventImage.GetCropUrl(w / 10, h / 10, quality: 40, furtherOptions: "format=webp")"
+									alt="@eventItem.EventImage.GetAltText()" sizes="auto"
+									style="height: 200px;" />
+							</div>
+						}
+
+						<div class="card-body d-flex flex-column text-center">
+							<h5 class="card-title mb-2">@eventItem.EventTitle</h5>
+							<p class="card-text text-muted small mb-1">
+								<i class="bi bi-calendar me-1"></i> @(eventItem.ComingSoon ? "Coming Soon" : eventItem.EventDateTime.ToString("dd MMMM yyyy HH:mm"))
+							</p>
+							@if (!string.IsNullOrWhiteSpace(eventItem.Location))
+							{
+								<p class="card-text text-muted small mb-2">
+									<i class="bi bi-geo-alt me-1"></i> @eventItem.Location
+								</p>
+							}
+							<p class="card-text flex-grow-1">@eventItem.ShortDescription</p>
+						</div>
+					</div>
+				</div>
+			}
+		</div>
+	}
+	else
+	{
+		<div class="alert alert-info text-center" role="alert">
+			No events found matching the current criteria.
+		</div>
+	}
+</div>
