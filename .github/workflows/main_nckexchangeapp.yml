@@ -98,11 +98,11 @@ jobs:
             .Authentication.Google = {
                 "ClientId": $googleClientID,
                 "ClientSecret": $googleClientSecret
-            }' |
+            } |
             .Recaptcha = {
                 "SiteKey": $recaptchaSiteKey,
                 "SecretKey": $recaptchaSecretKey
-            } \
+            }' \
             app_publish/appsettings.json > app_publish/appsettings.json.tmp && \
             mv app_publish/appsettings.json.tmp app_publish/appsettings.json
             
