@@ -28,7 +28,9 @@
 	if (showPastEvents)
 	{
 		// Show all events, ordered by date descending (newest first for past events)
-		filteredEvents = allEvents?.OrderByDescending(x => x.EventDateTime);
+		filteredEvents = allEvents?
+		.Where(x => x.EventDateTime <= DateTime.Now)
+		.OrderByDescending(x => x.EventDateTime);
 	}
 	else
 	{
@@ -38,9 +40,9 @@
 		.OrderBy(x => x.EventDateTime);
 	}
 
-	string? upcomingURL = Url.Action("Index", "EventsPage", new { showPastEvents = false });
-	string? pastURL = Url.Action("Index", "EventsPage", new { showPastEvents = true });
-
+	string baseUrl = Model.Url();
+	string upcomingURL = $"{baseUrl}?showPastEvents=false";
+	string pastURL = $"{baseUrl}?showPastEvents=true";
 }
 
 @await Html.GetBlockGridHtmlAsync(Model, "headerContent")
