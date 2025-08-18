@@ -69,6 +69,8 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           GOOGLE_CLIENTID: ${{ secrets.GOOGLE_CLIENTID }}
           GOOGLE_CLIENTSECRET: ${{ secrets.GOOGLE_CLIENTSECRET }}
+          RECAPCHA_SITEKEY: ${{ secrets.RECAPTCHA_SITEKEY }}
+          RECAPCHA_SECRETKEY: ${{ secrets.RECAPTCHA_SECRETKEY }}
         run: |
           # Use 'jq' to modify the JSON file.
           # The DSN and SMTP credentials are now passed via environment variables.
@@ -78,6 +80,8 @@ jobs:
             --arg smtpPassword "$SMTP_PASSWORD" \
             --arg googleClientID "$GOOGLE_CLIENTID" \
             --arg googleClientSecret "$GOOGLE_CLIENTSECRET" \
+            --arg recaptchaSiteKey "$RECAPCHA_SITEKEY" \
+            --arg recaptchaSecretKey "$RECAPCHA_SECRETKEY" \
             '.ConnectionStrings = {
                 "umbracoDbDSN": $dsn,
                 "umbracoDbDSN_ProviderName": "Microsoft.Data.SqlClient"
@@ -94,7 +98,11 @@ jobs:
             .Authentication.Google = {
                 "ClientId": $googleClientID,
                 "ClientSecret": $googleClientSecret
-            }' \
+            }' |
+            .Recaptcha = {
+                "SiteKey": $recaptchaSiteKey,
+                "SecretKey": $recaptchaSecretKey
+            } \
             app_publish/appsettings.json > app_publish/appsettings.json.tmp && \
             mv app_publish/appsettings.json.tmp app_publish/appsettings.json
             

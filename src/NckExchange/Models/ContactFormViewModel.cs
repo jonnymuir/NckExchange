@@ -14,4 +14,7 @@ public class ContactFormViewModel
     [Required(ErrorMessage = "Please enter your message.")]
     [MinLength(10, ErrorMessage = "Your message must be at least 10 characters long.")]
     public string Message { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "reCAPTCHA verification failed. Please try again.")]
+    public string RecaptchaToken { get; set; } = string.Empty; 
 }

@@ -5,14 +5,19 @@
 @using Umbraco.Cms.Core.Models.PublishedContent
 @using Microsoft.AspNetCore.Html
 @using NckExchange.Extensions
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
 @inherits UmbracoViewPage<Umbraco.Cms.Core.Models.Blocks.BlockGridItem<ContentModels.ContactUs>>
+
+@{
+    var recaptchaSiteKey = Configuration["ReCaptcha:SiteKey"];
+}
 
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-lg-6">
             <div class="p-5 bg-white rounded-3 shadow">
                 <form id="contactForm" action="/api/ContactApi/SubmitMessage" method="POST" class="text-center">
-                    <!-- Anti-forgery token is crucial for security -->
                     @Html.AntiForgeryToken() 
 
                     <div class="mb-3">
@@ -27,9 +32,17 @@
                         <label for="message" class="form-label visually-hidden">Your Message</label>
                         <textarea id="message" name="message" class="form-control" rows="5" placeholder="Your Message" required></textarea>
                     </div>
+
+                    <input type="hidden" name="RecaptchaToken" id="recaptchaToken">
+
+                    <p class="text-muted small mt-3">
+                        This site is protected by reCAPTCHA and the Google
+                        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" aria-label="Google Privacy Policy (opens in new tab)">Privacy Policy</a> and
+                        <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" aria-label="Google Terms of Service (opens in new tab)">Terms of Service</a> apply.
+                    </p>
+
                     <button type="submit" class="btn btn-primary w-100">Send</button>
 
-                    <!-- Message display area -->
                     <div id="formMessage" class="mt-3" style="display: none;"></div>
                 </form>
             </div>
@@ -37,27 +50,46 @@
     </div>
 </div>
 
+<script src="https://www.google.com/recaptcha/api.js?render=@recaptchaSiteKey" async defer></script>
+
 <script>
-    // JavaScript for AJAX form submission
     document.addEventListener('DOMContentLoaded', function () {
         const contactForm = document.getElementById('contactForm');
         const formMessage = document.getElementById('formMessage');
+        const recaptchaTokenInput = document.getElementById('recaptchaToken');
+        const submitButton = contactForm.querySelector('button[type="submit"]');
 
         contactForm.addEventListener('submit', async function (event) {
-            event.preventDefault(); // Prevent default form submission
+            event.preventDefault();
 
+            submitButton.disabled = true; 
+            formMessage.style.display = 'none'; 
+
+            grecaptcha.ready(function() {
+                const siteKey = '@recaptchaSiteKey';
+                grecaptcha.execute(siteKey, {action: 'submit_contact_form'})
+                    .then(async function(token) {
+                        recaptchaTokenInput.value = token; // Set the token to the hidden input
+                        await submitFormWithRecaptcha(); // Call the function to submit the form
+                    })
+                    .catch(function(error) {
+                        console.error('reCAPTCHA error:', error);
+                        formMessage.textContent = 'reCAPTCHA failed. Please try refreshing the page.';
+                        formMessage.className = 'mt-3 alert alert-danger';
+                        formMessage.style.display = 'block';
+                        submitButton.disabled = false;
+                    });
+            });
+        });
+
+        async function submitFormWithRecaptcha() {
             const formData = new FormData(contactForm);
-            const submitButton = contactForm.querySelector('button[type="submit"]');
-
-            submitButton.disabled = true; // Disable button to prevent multiple submissions
-            formMessage.style.display = 'none'; // Hide previous messages
 
             try {
                 const response = await fetch(contactForm.action, {
                     method: 'POST',
                     body: formData,
                     headers: {
-                        // Include the anti-forgery token from the form
                         'RequestVerificationToken': formData.get('__RequestVerificationToken') 
                     }
                 });
@@ -74,7 +106,8 @@
                         // Display specific validation errors if available
                         for (const key in data.errors) {
                             if (data.errors.hasOwnProperty(key)) {
-                                errorMessage += `\n${key}: ${data.errors[key].join(', ')}`;
+                                const errorMessages = data.errors[key].errors.map(err => err.errorMessage).join(', ');
+                                errorMessage += `\n${key}: ${errorMessages}`;
                             }
                         }
                     }
@@ -86,9 +119,9 @@
                 formMessage.textContent = 'There was a network error. Please try again later.';
                 formMessage.className = 'mt-3 alert alert-danger';
             } finally {
-                formMessage.style.display = 'block'; // Show the message
-                submitButton.disabled = false; // Re-enable the button
+                formMessage.style.display = 'block';
+                submitButton.disabled = false;
             }
-        });
+        }
     });
 </script>
