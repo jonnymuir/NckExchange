@@ -1,3 +1,4 @@
+@using System.Net
 @{
     ViewData["Title"] = "Access Denied";
     Layout = "_Layout";
@@ -14,7 +15,7 @@
             <a href="/" class="btn btn-primary btn-lg me-3" aria-label="Go to Home Page">
                 <i class="bi bi-house-fill me-2" aria-hidden="true"></i> Go to Home
             </a>
-            <a href="/Account/Login" class="btn btn-secondary btn-lg" aria-label="Go to Login Page">
+            <a href="/Account/Login@(string.IsNullOrWhiteSpace(ViewData["ReturnUrl"] as string) ? "" : $"?ReturnUrl={WebUtility.UrlEncode(ViewData["ReturnUrl"] as string)}")" class="btn btn-secondary btn-lg" aria-label="Go to Login Page">
                 <i class="bi bi-box-arrow-in-right me-2" aria-hidden="true"></i> Login Again
             </a>
         </div>

@@ -1,10 +1,15 @@
-﻿@using Umbraco.Extensions
+﻿@using Microsoft.AspNetCore.Identity
+@using Umbraco.Cms.Core.Security
+@using Umbraco.Extensions
 @using ContentModels = Umbraco.Cms.Web.Common.PublishedModels;
 @using Umbraco.Cms.Web.Common.Views
 @using Umbraco.Cms.Core.Models.Blocks
 @using Umbraco.Cms.Core.Models.PublishedContent
 @using Microsoft.AspNetCore.Html
 @using NckExchange.Extensions
+
+@inject SignInManager<MemberIdentityUser> SignInManager
+@inject UserManager<MemberIdentityUser> UserManager
 
 @inherits Umbraco.Cms.Web.Common.Views.UmbracoViewPage
 
@@ -14,6 +19,19 @@
 	{
 		return;
 	}
+
+	bool isAuthenticated = SignInManager.IsSignedIn(User);
+    
+    bool isAdmin = false;
+    if (isAuthenticated)
+    {
+        var user = await UserManager.GetUserAsync(User);
+		if(user != null)
+		{
+			isAdmin = await UserManager.IsInRoleAsync(user, "Administrator");
+		}
+    }
+
 }
 
 <nav class="navbar navbar-expand-lg bg-secondary text-uppercase fixed-top" id="mainNav">
@@ -34,6 +52,31 @@
 		<div class="collapse navbar-collapse" id="navbarResponsive">
 			<ul class="navbar-nav ms-auto">
 				@await Html.GetBlockGridHtmlAsync(siteSettings, "mainNavigation")
+				                <li class="nav-item dropdown mx-0 mx-lg-1">
+                    <a class="nav-link py-3 px-0 px-lg-3 rounded dropdown-toggle" href="#" id="navbarDropdownAccount" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Account menu">
+                        Account
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownAccount">
+                        @if (isAuthenticated)
+                        {
+                            @if (isAdmin)
+                            {
+                                <li><a class="dropdown-item" href="/admin" aria-label="Go to Admin Messages">Admin Messages</a></li>
+                            }
+                            <li><hr class="dropdown-divider"></li> @* Separator *@
+                            <li>
+                                <form id="logoutFormDropdown" asp-controller="Account" asp-action="Logout" method="post" class="dropdown-item p-0">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-link nav-link py-2 px-3 w-100 text-start" aria-label="Log out of your account">Logout</button>
+                                </form>
+                            </li>
+                        }
+                        else
+                        {
+                            <li><a class="dropdown-item" href="/Account/Login" aria-label="Log in to your account">Login</a></li>
+                        }
+                    </ul>
+                </li>
 			</ul>
 		</div>
 	</div>
