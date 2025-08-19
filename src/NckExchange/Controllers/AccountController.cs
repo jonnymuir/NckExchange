@@ -1,29 +1,33 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity; // For SignInManager<MemberIdentityUser>
-using Umbraco.Cms.Core.Security; // For MemberIdentityUser, IMemberManager
+using Microsoft.AspNetCore.Identity;
+using Umbraco.Cms.Core.Security;
 using System.Security.Claims;
-using Umbraco.Cms.Core.Services; // For FindFirstValue(ClaimTypes.Email)
 
 namespace NckExchange.Controllers;
 
-[Route("[controller]")] // All actions in this controller will be prefixed with /Account
+[Route("[controller]")]
 public class AccountController(
     SignInManager<MemberIdentityUser> signInManager,
     IMemberManager memberManager,
-    ILogger<AccountController> logger,
-    IMemberGroupService memberGroupService) : Controller
+    ILogger<AccountController> logger) : Controller
 {
-    // GET: /Account/Login
     [HttpGet("Login")] // Responds to /Account/Login
     public IActionResult Login(string? returnUrl = null)
     {
         ViewData["ReturnUrl"] = returnUrl;
-        return View(); // Renders Views/Account/Login.cshtml
+        return View();
+    }
+
+    [HttpGet("AccessDenied")]
+    public IActionResult AccessDenied(string? returnUrl = null)
+    {
+        ViewData["ReturnUrl"] = returnUrl;
+        return View();
     }
 
     // POST: /Account/ExternalLogin (Initiates the Google login flow)
-    [HttpPost("ExternalLogin")] // Responds to /Account/ExternalLogin
-    [ValidateAntiForgeryToken] // Protects against CSRF
+    [HttpPost("ExternalLogin")]
+    [ValidateAntiForgeryToken]
     public IActionResult ExternalLogin(string provider, string? returnUrl = null)
     {
         // Request a redirect to the external login provider (e.g., Google).
@@ -52,9 +56,7 @@ public class AccountController(
             return View(nameof(Login));
         }
 
-        // This is the key change: REMOVE the ExternalLoginSignInAsync call.
-        // Instead, go directly to creating or linking the member.
-
+        // Check if the user has an email claim
         var email = info.Principal.FindFirstValue(ClaimTypes.Email);
         if (string.IsNullOrEmpty(email))
         {
@@ -159,8 +161,7 @@ public class AccountController(
         return RedirectToLocal(returnUrl);
     }
 
-    // POST: /Account/Logout
-    [HttpPost("Logout")] // Responds to /Account/Logout
+    [HttpPost("Logout")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
@@ -178,6 +179,6 @@ public class AccountController(
             return Redirect(returnUrl);
         }
         // Fallback redirect if returnUrl is not local or null
-        return RedirectToAction(nameof(Index), "Home");
+        return Redirect("/");
     }
 }

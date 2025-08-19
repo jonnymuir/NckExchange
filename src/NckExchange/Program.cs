@@ -1,41 +1,28 @@
 using Slimsy.DependencyInjection;
-using Microsoft.AspNetCore.Authentication; 
-using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
-using Umbraco.Cms.Web.Common.Security;
+using Microsoft.AspNetCore.Authentication;
 using Umbraco.Cms.Core.Security;
+using Umbraco.Cms.Core.Services;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-// NEW: Configure external authentication (Google OAuth)
 builder.Services.AddAuthentication()
     .AddGoogle(options =>
     {
-        // Get your Google Client ID and Client Secret from appsettings.json
-        // Make sure you've added the "Authentication:Google:ClientId" and "ClientSecret" to your appsettings.json
         options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
         options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
 
-        // Request necessary scopes from Google for user profile and email
         options.Scope.Add("profile");
         options.Scope.Add("email");
 
-        // This is the default callback path where Google will redirect after authentication.
-        // It must match one of the "Authorized redirect URIs" in your Google Cloud Console project.
         options.CallbackPath = "/signin-google";
-
-        // Optional: If you want to specify a different sign-in scheme,
-        // you might use IdentityConstants.ExternalScheme here.
         options.SignInScheme = IdentityConstants.ExternalScheme;
     });
 
-// NEW: Configure the application cookie for Umbraco members authentication
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    // Set the path where unauthenticated members will be redirected for login
-    options.LoginPath = "/login"; 
-    // Optional: Set a path for access denied redirects (e.g., if a member lacks a required role)
-    options.AccessDeniedPath = "/access-denied"; 
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";   
 });
 
 var umbracoBuilder = builder.CreateUmbracoBuilder()
