@@ -1,12 +1,3 @@
-/*!
-* Start Bootstrap - Freelancer v7.0.7 (https://startbootstrap.com/theme/freelancer)
-* Copyright 2013-2023 Start Bootstrap
-* Licensed under MIT (https://github.com/StartBootstrap/startbootstrap-freelancer/blob/master/LICENSE)
-*/
-//
-// Scripts
-// 
-
 window.addEventListener('DOMContentLoaded', event => {
 
     // Navbar shrink function
@@ -29,26 +20,91 @@ window.addEventListener('DOMContentLoaded', event => {
     // Shrink the navbar when page is scrolled
     document.addEventListener('scroll', navbarShrink);
 
-    // Activate Bootstrap scrollspy on the main nav element
-    const mainNav = document.body.querySelector('#mainNav');
-    if (mainNav) {
-        new bootstrap.ScrollSpy(document.body, {
-            target: '#mainNav',
-            rootMargin: '0px 0px -40%',
-        });
-    };
+    const navbarCollapse = document.getElementById('navbarResponsive');
+    const customDropdownToggles = document.querySelectorAll('.js-custom-dropdown-toggle');
+    const customNavbarToggler = document.querySelector('.js-custom-navbar-toggler');
 
-    // Collapse responsive navbar when toggler is visible
-    const navbarToggler = document.body.querySelector('.navbar-toggler');
-    const responsiveNavItems = [].slice.call(
-        document.querySelectorAll('#navbarResponsive .nav-link')
-    );
-    responsiveNavItems.map(function (responsiveNavItem) {
-        responsiveNavItem.addEventListener('click', () => {
-            if (window.getComputedStyle(navbarToggler).display !== 'none') {
-                navbarToggler.click();
+    // Helper function to close all dropdown menus
+    function closeAllDropdowns(excludeToggle = null) {
+        customDropdownToggles.forEach(toggle => {
+            if (toggle !== excludeToggle) {
+                toggle.setAttribute('aria-expanded', 'false');
+                const menuId = toggle.getAttribute('id');
+                const menu = document.querySelector(`[aria-labelledby="${menuId}"]`);
+                if (menu) {
+                    menu.classList.remove('show');
+                }
             }
+        });
+    }
+
+    // Event listener for the main navbar toggler (hamburger button)
+    if (customNavbarToggler && navbarCollapse) {
+        customNavbarToggler.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const isExpanded = customNavbarToggler.getAttribute('aria-expanded') === 'true';
+
+            // Toggle 'show' class on the collapsible navbar content
+            navbarCollapse.classList.toggle('show');
+            // Update aria-expanded attribute on the toggler button
+            customNavbarToggler.setAttribute('aria-expanded', !isExpanded);
+
+            // If the main navbar is closed, ensure all nested dropdowns are also closed
+            if (!navbarCollapse.classList.contains('show')) {
+                closeAllDropdowns(); // Call the helper to close all dropdowns
+            }
+        });
+    }
+
+    // Event listener for custom dropdown toggles (e.g., Account, NavigationGroup)
+    customDropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation(); // Crucial to prevent bubbling to main navbar toggler
+
+            const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+            const menuId = toggle.getAttribute('id');
+            const menu = document.querySelector(`[aria-labelledby="${menuId}"]`);
+
+            if (!menu) {
+                console.warn(`Dropdown menu not found for toggle with aria-labelledby="${menuId}"`);
+                return;
+            }
+
+            closeAllDropdowns(toggle); // Close other dropdowns before opening this one
+
+            // Toggle current dropdown:
+            toggle.setAttribute('aria-expanded', !isExpanded);
+            menu.classList.toggle('show');
         });
     });
 
+    // Global 'document' click listener to close menus when clicking outside
+    document.addEventListener('click', function (event) {
+        const isClickInsideNavbar = navbarCollapse.contains(event.target) ||
+            (customNavbarToggler && customNavbarToggler.contains(event.target));
+
+        let isClickInsideDropdown = false;
+        customDropdownToggles.forEach(toggle => {
+            const menuId = toggle.getAttribute('id');
+            const menu = document.querySelector(`[aria-labelledby="${menuId}"]`);
+            if (menu && (menu.contains(event.target) || toggle.contains(event.target))) {
+                isClickInsideDropdown = true;
+            }
+        });
+
+        if (!isClickInsideNavbar && !isClickInsideDropdown) {
+            // Close main navbar if it's open
+            if (navbarCollapse.classList.contains('show')) {
+                navbarCollapse.classList.remove('show');
+                if (customNavbarToggler) {
+                    customNavbarToggler.setAttribute('aria-expanded', 'false');
+                }
+            }
+            // Close all dropdowns
+            closeAllDropdowns();
+        }
+    });
 });

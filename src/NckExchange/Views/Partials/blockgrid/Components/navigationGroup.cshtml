@@ -14,13 +14,13 @@
     <li class="nav-item mx-0 mx-lg-1 dropdown">
         @if(Model.Content.Link != null)
         {
-            <a class="nav-link py-3 px-0 px-lg-3 rounded dropdown-toggle" target="@Model.Content.Link.Target" href="@Model.Content.Link.Url" id="@Model.Content.Key.ToString("N")" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <a class="nav-link py-3 px-0 px-lg-3 rounded dropdown-toggle js-custom-dropdown-toggle" target="@Model.Content.Link.Target" href="@Model.Content.Link.Url" id="@Model.Content.Key.ToString("N")" role="button" aria-expanded="false" aria-haspopup="true">
                 @Model.Content.Link.Name
             </a>
         }
         else if(!string.IsNullOrWhiteSpace(Model.Content.Title))
         {
-            <a class="nav-link py-3 px-0 px-lg-3 rounded dropdown-toggle" href="#" id="@Model.Content.Key.ToString("N")" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <a class="nav-link py-3 px-0 px-lg-3 rounded dropdown-toggle js-custom-dropdown-toggle" href="#" id="@Model.Content.Key.ToString("N")" role="button" aria-expanded="false" aria-haspopup="true">
                 @Model.Content.Title
             </a>
         }
@@ -32,7 +32,7 @@
         </ul>
     </li>
 }
-else
+else if (Model.Content.Link != null)
 {
     <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded" target="@Model.Content.Link.Target" href="@Model.Content.Link.Url">@Model.Content.Link.Name</a></li>
 }
