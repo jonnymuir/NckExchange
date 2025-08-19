@@ -1,24 +1,23 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using NckExchange.Core.Models; // Your ContactMessage model
-using NckExchange.Models; // Your AdminReplyViewModel
-using Umbraco.Cms.Core.Mail; // For Umbraco's email sender service
-using System.Security.Claims; // For getting current user's email
+using NckExchange.Core.Models;
+using NckExchange.Models;
+using Umbraco.Cms.Core.Mail;
+using System.Security.Claims;
 using Umbraco.Cms.Infrastructure.Scoping;
 using System.Net;
 using NPoco;
 
 namespace NckExchange.Controllers;
 
-[Authorize(Roles = "Administrator")] // Only users with 'Administrator' role can access this controller
-[Route("admin/messages")] // Base route for this controller
-public class AdminMessagesController(
+[Authorize(Roles = "Administrator")]
+[Route("admin")] 
+public class AdminController(
     IScopeProvider scopeProvider,
-    ILogger<AdminMessagesController> logger,
+    ILogger<AdminController> logger,
     IEmailSender emailSender) : Controller
 {
-    // GET: /admin/messages
-    // Displays a list of all contact messages with optional limit and status filter.
+    // GET: /admin
     public async Task<IActionResult> Index(int? limit, bool? isAnswered)
     {
         List<ContactMessage> messages;
@@ -58,9 +57,7 @@ public class AdminMessagesController(
         return View(messages);
     }
 
-    // GET: /admin/messages/reply/{id}
-    // Displays the form to reply to a specific message.
-    [HttpGet("reply/{id:int}")] // Defines a route with an integer ID parameter
+    [HttpGet("reply/{id:int}")]
     public async Task<IActionResult> Reply(int id)
     {
         ContactMessage? message;
@@ -84,21 +81,20 @@ public class AdminMessagesController(
             OriginalSenderName = message.Name,
             OriginalSenderEmail = message.Email,
             OriginalMessage = message.Message,
-            Answer = message.Answer ?? string.Empty // Pre-fill if already answered/edited
+            Answer = message.Answer ?? string.Empty
         };
 
         return View(replyViewModel);
     }
 
-    // POST: /admin/messages/reply
+    // POST: /admin/reply
     // Handles the submission of the reply form.
     [HttpPost("reply/{id:int}")]
-    [ValidateAntiForgeryToken] // Protect against Cross-Site Request Forgery
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reply([FromForm] AdminReplyViewModel model,int id)
     {
         if (!ModelState.IsValid)
         {
-            // If model state is invalid, return to the form with validation errors
             return View(model);
         }
 
@@ -121,11 +117,6 @@ public class AdminMessagesController(
 
             await database.UpdateAsync(messageToUpdate); // Update the message in the database
 
-            // Get the email of the currently logged-in administrator
-            // This relies on the ASP.NET Core Identity authentication populating the User.Claims
-            var adminUserEmail = User.FindFirstValue(ClaimTypes.Email);
-
-            // Send email back to the original sender
             await SendReplyEmail(
                 model.OriginalSenderEmail,
                 messageToUpdate.Name,
@@ -135,18 +126,16 @@ public class AdminMessagesController(
             );
 
             TempData["SuccessMessage"] = "Reply sent and message updated successfully! Email dispatched.";
-            return RedirectToAction(nameof(Index)); // Redirect to the message list
+            return RedirectToAction(nameof(Index));
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error replying to message ID {MessageId} for email {Email}", model.Id, model.OriginalSenderEmail);
             ModelState.AddModelError("", "An error occurred while sending the reply. Please try again.");
-            // autoComplete: true handles the rollback if an exception occurs
             return View(model);
         }
     }
 
-    // Helper method to send the email reply
     private async Task SendReplyEmail(
         string recipientEmail,
         string originalSenderName,
@@ -155,13 +144,10 @@ public class AdminMessagesController(
         AdminReplyViewModel model
     )
     {
-        // Configure your sender email in appsettings.json (Umbraco.CMS.Global.Smtp.From)
-        // It's good practice to use a "no-reply" address as the 'From' address.
-        var senderEmail = "support@theexchange-tod.com"; // **IMPORTANT: Configure this in appsettings.json/Umbraco config**
+        var senderEmail = "support@theexchange-tod.com"; 
 
         var subject = "Your inquiry to The Exchange Tod has been answered";
         
-        // Build the HTML email body
         var body = $@"
                 <html>
                 <head>
@@ -186,16 +172,14 @@ public class AdminMessagesController(
                 </body>
                 </html>";
 
-        // Create an EmailMessage object for Umbraco's IEmailSender service
         var emailMessage = new Umbraco.Cms.Core.Models.Email.EmailMessage(
             to: recipientEmail,
             from: senderEmail,
             subject: subject,
             body: body,
-            isBodyHtml: true // Important: Set to true for HTML emails
+            isBodyHtml: true
         );
 
-        // Send the email. "ContactMessageReply" is an optional tag for logging/tracking.
         try
         {
             await emailSender.SendAsync(emailMessage, "ContactMessageReply");
@@ -204,7 +188,7 @@ public class AdminMessagesController(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to send email reply to {RecipientEmail} for message ID {MessageId}. Check SMTP configuration.", recipientEmail, model.Id);
-            throw; // Re-throw to ensure the calling method's catch block handles it
+            throw;
         }
     }
 }

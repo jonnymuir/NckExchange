@@ -1,14 +1,11 @@
 @model List<NckExchange.Core.Models.ContactMessage>
 @{
-    // Set the page title and ensure it uses your main website layout
     ViewData["Title"] = "Contact Messages Admin";
-    Layout = "_Layout"; 
+    Layout = "_Layout";
 
-    // Get current filter values from ViewData for form persistence
     var currentLimit = (int?)ViewData["CurrentLimit"] ?? 100;
     var currentIsAnswered = (bool?)ViewData["CurrentIsAnswered"];
 
-    // NEW: Boolean variables for 'selected' attribute - This explicitly tells Razor when to render the 'selected' attribute
     bool selectLimit50 = (currentLimit == 50);
     bool selectLimit100 = (currentLimit == 100);
     bool selectLimit500 = (currentLimit == 500);
@@ -21,13 +18,16 @@
 
 <style>
     :root {
-          --bs-body-font-size: 1rem;
-          --bs-body-line-height: 1;
+        --bs-body-font-size: 1rem;
+        --bs-body-line-height: 1;
     }
 </style>
 
-<div class="container my-5">
-    <h1 class="mb-4 text-center">Contact Messages</h1>
+@await Html.PartialAsync("mainNavigationAdmin")
+
+<div class="container">
+    
+    <h1 class="masthead mb-4 text-center">Contact Messages</h1>
 
     @if (TempData["SuccessMessage"] != null)
     {
@@ -37,9 +37,8 @@
         </div>
     }
 
-    <!-- Filtering and Limiting Form -->
     <div class="mb-4 p-4 bg-white rounded-3 shadow-sm">
-        <form id="filterForm" asp-controller="AdminMessages" asp-action="Index" method="get" class="row g-3 align-items-end">
+        <form id="filterForm" asp-controller="Admin" asp-action="Index" method="get" class="row g-3 align-items-end">
             <div class="col-md-4">
                 <label for="limit" class="form-label">Show:</label>
                 <select id="limit" name="limit" class="form-select">
@@ -57,10 +56,6 @@
                     <option value="true" selected="@selectAnswered">Answered</option>
                 </select>
             </div>
-            @* The "Apply Filters" button is removed *
-            @* <div class="col-md-auto">
-                <button type="submit" class="btn btn-primary">Apply Filters</button>
-            </div> *@
         </form>
     </div>
 
@@ -105,8 +100,18 @@
                                 }
                             </td>
                             <td>
-                                <a asp-controller="AdminMessages" asp-action="Reply" asp-route-id="@message.Id" class="btn btn-sm btn-primary">
-                                    @if (message.IsAnswered) {<i class="bi bi-pencil-fill"></i> <span>Edit Answer</span>} else {<i class="bi bi-reply-fill"></i> <span>Reply</span>}
+                                <a asp-controller="Admin" asp-action="Reply" asp-route-id="@message.Id"
+                                    class="btn btn-sm btn-primary">
+                                    @if (message.IsAnswered)
+                                    {
+                                        <i class="bi bi-pencil-fill"></i>
+                                        <span>Edit Answer</span>
+        }
+        else
+                                    {
+                                        <i class="bi bi-reply-fill"></i>
+                                        <span>Reply</span>
+        }
                                 </a>
                             </td>
                         </tr>
@@ -118,22 +123,17 @@
 </div>
 
 @section Scripts {
-    <!-- Include Bootstrap Icons for visual flair -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const filterForm = document.getElementById('filterForm');
             const limitSelect = document.getElementById('limit');
             const isAnsweredSelect = document.getElementById('isAnswered');
 
             if (filterForm && limitSelect && isAnsweredSelect) {
-                // Function to submit the form
                 const submitFilterForm = () => {
                     filterForm.submit();
                 };
 
-                // Add change event listeners to both select elements
                 limitSelect.addEventListener('change', submitFilterForm);
                 isAnsweredSelect.addEventListener('change', submitFilterForm);
             }

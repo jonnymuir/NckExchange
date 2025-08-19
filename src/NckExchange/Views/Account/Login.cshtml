@@ -30,28 +30,12 @@
                 <p class="text-center text-muted">
                     If you don't have a Google account linked, please contact support.
                 </p>
-
-                @* Optional: Add a traditional username/password login form here later if needed *@
-                @* This section is commented out, but serves as an example if you want to add local login *
-                @* <form method="post" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@ViewData["ReturnUrl"]">
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" id="email" name="email" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" id="password" name="password" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Login</button>
-                </form> *@
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    <!-- Include Bootstrap Icons for Google icon -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         .btn-google {
             background-color: #DB4437; /* Google Red */
