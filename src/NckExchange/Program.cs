@@ -1,8 +1,7 @@
 using Slimsy.DependencyInjection;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Authentication;
-using Umbraco.Cms.Core.Security;
-using Umbraco.Cms.Core.Services;
+using NckExchange.ExternalUserLogin.GoogleAuthentication;
+
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +29,7 @@ var umbracoBuilder = builder.CreateUmbracoBuilder()
     .AddWebsite()
     .AddSlimsy()
     .AddDeliveryApi()
+    .AddGoogleAuthentication(builder.Configuration)
     .AddComposers();
 
 // Conditionally add Azure Blob services (existing code)
