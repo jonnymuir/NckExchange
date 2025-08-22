@@ -47,7 +47,7 @@ public class GoogleBackOfficeExternalLoginProviderOptions : IConfigureNamedOptio
             // the Umbraco backoffice.
             // Set this to false if you don't want the user to unlink
             // from this external login provider.
-            allowManualLinking: true
+            allowManualLinking: false
         )
         {
             // [OPTIONAL] Callback

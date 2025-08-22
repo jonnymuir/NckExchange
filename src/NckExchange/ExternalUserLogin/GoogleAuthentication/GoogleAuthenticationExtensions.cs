@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Identity;
 using Umbraco.Cms.Core.Security;
 using Umbraco.Cms.Core.Services;
+using Microsoft.Extensions.Logging;
 
 namespace NckExchange.ExternalUserLogin.GoogleAuthentication;
 
@@ -33,13 +34,10 @@ public static class GoogleAuthenticationExtensions
                             {
                                 OnTicketReceived = async context =>
                                 {
-                                    // This executes after Google authenticates the user,
-                                    // but before Umbraco (or Identity) tries to sign them in.
                                     var httpContext = context.HttpContext;
                                     var logger = httpContext.RequestServices.GetRequiredService<ILogger<GoogleBackOfficeExternalLoginProviderOptions>>();
                                     var backOfficeUserManager = httpContext.RequestServices.GetRequiredService<IBackOfficeUserManager>();
                                     var userService = httpContext.RequestServices.GetRequiredService<IUserService>();
-                                    var signInManager = httpContext.RequestServices.GetRequiredService<SignInManager<BackOfficeIdentityUser>>();
 
                                     var externalLoginInfo = context.Principal;
                                     var loginProvider = context.Scheme.Name;
@@ -52,10 +50,10 @@ public static class GoogleAuthenticationExtensions
                                         return;
                                     }
 
-                                    // 1. Try to find an existing backoffice user linked to this external login
+                                    // 1. Try to find an existing backoffice user linked to this specific external login (providerKey)
                                     var identityUser = await backOfficeUserManager.FindByLoginAsync(loginProvider, providerKey);
 
-                                    // 2. If no user is linked to this specific Google login yet:
+                                    // 2. If no user is linked to this specific Google login (providerKey) yet:
                                     if (identityUser == null)
                                     {
                                         // Try to find an existing Umbraco user by email
@@ -67,9 +65,8 @@ public static class GoogleAuthenticationExtensions
 
                                             if (existingUmbracoUser != null)
                                             {
-                                                logger.LogInformation("Existing Umbraco user found by email '{Email}'. Attempting to link Google account.", email);
+                                                logger.LogInformation("Existing Umbraco user found by email '{Email}'. Evaluating Google account linking.", email);
 
-                                                // Convert existing Umbraco IUser to BackOfficeIdentityUser
                                                 var existingIdentityUser = await backOfficeUserManager.FindByIdAsync(existingUmbracoUser.Key.ToString());
 
                                                 if (existingIdentityUser == null)
@@ -79,39 +76,59 @@ public static class GoogleAuthenticationExtensions
                                                     return;
                                                 }
 
-                                                // Link the Google login to the existing Umbraco user
-                                                var addLoginResult = await backOfficeUserManager.AddLoginAsync(existingIdentityUser, new UserLoginInfo(loginProvider, providerKey, loginProvider));
+                                                // --- CRITICAL SECURITY CHECK ---
+                                                // Fetch ALL external logins for this EXISTING Umbraco user (found by email).
+                                                var existingLoginsForThisUmbracoUser = await backOfficeUserManager.GetLoginsAsync(existingIdentityUser);
 
-                                                if (addLoginResult.Succeeded)
+                                                // CHECK 1: Is this specific incoming Google providerKey already linked to this user? (Should be caught by FindByLoginAsync earlier, but defensive)
+                                                if (existingLoginsForThisUmbracoUser.Any(l => l.LoginProvider == loginProvider && l.ProviderKey == providerKey))
                                                 {
-                                                    logger.LogInformation("Successfully linked Google account for existing Umbraco user '{Email}'.", email);
-
-                                                    // Sign in the Umbraco user
-                                                    // This issues the authentication cookie and sets HttpContext.User
-                                                    await signInManager.SignInAsync(existingIdentityUser, isPersistent: false); 
-                                                    
-                                                    // IMPORTANT: Transfer the principal from the SignInManager's result to the OAuth context
-                                                    // The SignInManager has now set HttpContext.User correctly, we need to apply that to context.Principal
-                                                    context.Principal = httpContext.User;
+                                                    logger.LogInformation("Google account for '{Email}' is ALREADY linked to this specific user. Skipping re-linking and allowing login.", email);
                                                     context.Success();
-                                                    context.HandleResponse(); // Indicate that we've fully handled the authentication ticket
-                                                    return; // Exit the callback
+                                                    return;
                                                 }
+                                                // Does this user already have *ANY* Google account linked, but with a DIFFERENT providerKey?
+                                                // This addresses the potential hijacking/duplication (unlikely because the email is unique, but still a good check).
+                                                else if (existingLoginsForThisUmbracoUser.Any(l => l.LoginProvider == loginProvider))
+                                                {
+                                                    logger.LogWarning("Existing Umbraco user '{Email}' is already linked to a DIFFERENT Google account. Preventing link to new Google account (Potential security issue or misconfiguration).", email);
+                                                    // This is the point where you prevent the linking if another Google account is already there.
+                                                    context.Fail("User is already linked to a different Google account. Cannot link another.");
+                                                    return;
+                                                }
+                                                // If neither of the above, then the user exists, and has no Google account linked yet. Proceed to link.
                                                 else
                                                 {
-                                                    logger.LogError("Failed to link Google account for existing Umbraco user '{Email}'. Errors: {Errors}", email, string.Join(", ", addLoginResult.Errors.Select(e => e.Description)));
-                                                    context.Fail("Failed to link external login.");
+                                                    logger.LogInformation("Existing Umbraco user '{Email}' found and has no Google account linked yet. Proceeding to link.", email);
+                                                    // Link the Google login to the existing Umbraco user
+                                                    var addLoginResult = await backOfficeUserManager.AddLoginAsync(existingIdentityUser, new UserLoginInfo(loginProvider, providerKey, loginProvider));
+
+                                                    if (addLoginResult.Succeeded)
+                                                    {
+                                                        logger.LogInformation("Successfully linked Google account for existing Umbraco user '{Email}'.", email);
+
+                                                        if (existingUmbracoUser.IsApproved == false)
+                                                        {
+                                                            existingUmbracoUser.IsApproved = true;
+                                                            userService.Save(existingUmbracoUser);
+                                                            logger.LogInformation("Automatically approved invited user '{Email}'.", email);
+                                                        }
+                                                        context.Success();
+                                                    }
+                                                    else
+                                                    {
+                                                        logger.LogError("Failed to link Google account for existing Umbraco user '{Email}'. Errors: {Errors}", email, string.Join(", ", addLoginResult.Errors.Select(e => e.Description)));
+                                                        context.Fail("Failed to link external login.");
+                                                    }
                                                 }
                                             }
-                                            else
+                                            else // No existing Umbraco user found by email
                                             {
                                                 logger.LogInformation("No existing Umbraco user found for email '{Email}'. External login will fail as auto-linking is disabled.", email);
-                                                // If autoLinkExternalAccount is false (as per your config), and no existing user by email,
-                                                // we let the default Identity flow fail, which is what you want.
                                                 context.Fail("No linked user and auto-linking disabled."); // Explicitly fail the context
                                             }
                                         }
-                                        else
+                                        else // Email claim missing from Google principal
                                         {
                                             logger.LogWarning("Email claim missing from Google principal. Cannot link existing user.");
                                             context.Fail("Email claim missing.");
@@ -119,7 +136,7 @@ public static class GoogleAuthenticationExtensions
                                     }
                                     else
                                     {
-                                        // User is already linked, nothing to do, let Identity flow continue to sign in
+                                        // User is already linked (via FindByLoginAsync at the start). Simply set success.
                                         logger.LogInformation("Google account already linked for Umbraco user '{UserName}'.", identityUser.UserName);
                                         context.Success();
                                     }
