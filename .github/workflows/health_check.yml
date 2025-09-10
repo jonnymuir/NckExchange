@@ -1,0 +1,16 @@
+name: Website Health Check
+
+on:
+  # The cron syntax '*/10 * * * *' means it runs every 10 minutes.
+  schedule:
+    - cron: '*/10 * * * *'
+  
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check website status
+        run: curl --fail -s -L -o /dev/null https://theexchange-tod.com
