@@ -12,5 +12,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check website status
-        run: curl --fail -s -L -o /dev/null https://theexchange-tod.com
+      - name: Check website status and capture diagnostics
+        run: |
+          # Attempt the curl command and redirect verbose output to a file
+          curl --fail -s -L -o /dev/null -v https://theexchange-tod.com &> diagnostics.log
+          
+          # Check if the file exists and print its contents
+          if [ -s diagnostics.log ]; then
+            echo "--- Curl Diagnostics ---"
+            cat diagnostics.log
+            echo "------------------------"
+          fi  
