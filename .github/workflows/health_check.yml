@@ -14,12 +14,25 @@ jobs:
     steps:
       - name: Check website status and capture diagnostics
         run: |
-          # Attempt the curl command and redirect verbose output to a file
-          curl --fail -s -L -o /dev/null -v https://theexchange-tod.com &> diagnostics.log
-          
-          # Check if the file exists and print its contents
-          if [ -s diagnostics.log ]; then
-            echo "--- Curl Diagnostics ---"
-            cat diagnostics.log
-            echo "------------------------"
-          fi  
+          retry_count=0
+          max_retries=3
+
+          while [ $retry_count -lt $max_retries ]; do
+            if curl --fail -s -L -o /dev/null -v https://theexchange-tod.com &> diagnostics.log; then
+              echo "Health check succeeded on attempt $((retry_count + 1))."
+              # Print logs for success, too, if you want
+              echo "--- Curl Diagnostics ---"
+              cat diagnostics.log
+              echo "------------------------"
+              exit 0 # Exit the job successfully
+            else
+              echo "Attempt $((retry_count + 1)) failed. Retrying..."
+              cat diagnostics.log # Print diagnostics from the failed attempt
+              echo "------------------------"
+              retry_count=$((retry_count + 1))
+              sleep 5 # Wait for 5 seconds before retrying
+            fi
+          done
+
+          echo "Health check failed after $max_retries attempts."
+          exit 1 # Fail the job after all retries are exhausted
