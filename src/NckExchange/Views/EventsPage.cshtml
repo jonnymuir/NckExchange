@@ -13,7 +13,6 @@
 
 @{
 	Layout = "Main.cshtml";
-	ViewData["Title"] = Model.Name; // Use the page's name for the browser title
 
 	// Get filter for past/future events from query string
 	bool showPastEvents = Context.Request.Query["showPastEvents"].ToString().Equals("true",

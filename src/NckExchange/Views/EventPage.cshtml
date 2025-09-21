@@ -13,7 +13,7 @@
 
 @{
 	Layout = "Main.cshtml";
-	ViewData["Title"] = Model.EventTitle;
+	ViewData["MetaTitle"] = Model.EventTitle;
 	var headerContent = Model.Value<IEnumerable<BlockGridItem>>("headerContent");
 	int h = 240;
 	int w = 240;

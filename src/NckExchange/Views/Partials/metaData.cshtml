@@ -1,4 +1,40 @@
-﻿<meta charset="utf-8" />
+﻿@inherits Microsoft.AspNetCore.Mvc.Razor.RazorPage<dynamic>
+@using Our.Umbraco.TheDashboard
+@using Umbraco.Cms.Web.Common.PublishedModels
+@using Umbraco.Cms.Web.Common.Views
+
+@{
+    var title = "The Exchange";
+    
+    var seo = Model as ISEoproperties;
+
+    if(seo != null) {
+        title = $"{(!string.IsNullOrWhiteSpace(seo.MetaTitle) ? seo.MetaTitle : Model.Name)} - The Exchange";
+    } else if(ViewData["MetaTitle"] != null) {
+        title = $"{@ViewData["MetaTitle"]} - The Exchange";
+    }
+
+    var description = string.Empty;
+
+    if(seo != null) {
+        description = seo.MetaDescription;
+    }
+    else if(ViewData["MetaDescription"] != null) {
+        description = $"{ViewData["MetaDescription"]}";
+    }
+
+    var robots = "NOINDEX, NOFOLLOW";
+
+    if(seo != null)
+    {
+        robots = $"{(seo.IsFollowable ? "FOLLOW," : "NOFOLLOW,")}{(seo.IsIndexable ? "INDEX" : "NOINDEX")}";
+    }
+}
+
+<title>@title</title>
+
+<meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-<meta name="description" content="" />
+<meta name="description" content="@description" />
+<meta name="robots" content="@robots" />
 <meta name="author" content="" />
