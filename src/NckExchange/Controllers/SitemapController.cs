@@ -18,14 +18,10 @@ public class SitemapController(IUmbracoContextFactory umbracoContextFactory) : C
         xmlStringBuilder.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         xmlStringBuilder.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
 
-        // Ensure Umbraco context exists for the duration of this method.
         using (var cref = umbracoContextFactory.EnsureUmbracoContext())
         {
-            // This is the correct way to access the query service.
-            // The 'Content' property on UmbracoContext is an IPublishedContentQuery.
             var publishedContentQuery = cref.UmbracoContext.Content;
 
-            // Get the root of the website
             var root = publishedContentQuery?.GetAtRoot().FirstOrDefault();
             if (root != null)
             {
