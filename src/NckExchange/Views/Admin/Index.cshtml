@@ -26,7 +26,7 @@
 @await Html.PartialAsync("mainNavigationAdmin")
 
 <div class="container">
-    
+
     <h1 class="masthead mb-4 text-center">Contact Messages</h1>
 
     @if (TempData["SuccessMessage"] != null)
@@ -67,58 +67,68 @@
     }
     else
     {
-        <div class="table-responsive p-3 bg-white rounded-3 shadow">
-            <table class="table table-striped table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Name</th>
-                        <th scope="col">Email</th>
-                        <th scope="col">Message Preview</th>
-                        <th scope="col">Submitted</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var message in Model)
-                    {
-                        <tr class="@(message.IsAnswered ? "table-light" : "table-warning")">
-                            <td>@message.Id</td>
-                            <td>@message.Name</td>
-                            <td>@message.Email</td>
-                            <td>@(message.Message.Length > 70 ? message.Message.Substring(0, 70) + "..." : message.Message)</td>
-                            <td>@message.DateSubmitted.ToShortDateString() @message.DateSubmitted.ToShortTimeString()</td>
-                            <td>
+        <table class="table table-responsive table-striped table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th scope="col">Actions</th>
+                    <th scope="col">Delete</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Message Preview</th>
+                    <th scope="col">Submitted</th>
+                    <th scope="col">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var message in Model)
+                {
+                    <tr class="@(message.IsAnswered ? "table-light" : "table-warning")">
+                        <td>
+                            <a asp-controller="Admin" asp-action="Reply" asp-route-id="@message.Id"
+                                class="btn btn-sm btn-primary">
                                 @if (message.IsAnswered)
                                 {
-                                    <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Answered</span>
+                                    <i class="bi bi-pencil-fill"></i>
+                                    <span>Edit Answer</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill"></i> Pending</span>
+                                    <i class="bi bi-reply-fill"></i>
+                                    <span>Reply</span>
                                 }
-                            </td>
-                            <td>
-                                <a asp-controller="Admin" asp-action="Reply" asp-route-id="@message.Id"
-                                    class="btn btn-sm btn-primary">
-                                    @if (message.IsAnswered)
-                                    {
-                                        <i class="bi bi-pencil-fill"></i>
-                                        <span>Edit Answer</span>
-        }
-        else
-                                    {
-                                        <i class="bi bi-reply-fill"></i>
-                                        <span>Reply</span>
-        }
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                            </a>
+                        </td>
+                        <td>
+                            <form asp-controller="Admin" asp-action="Delete" asp-route-id="@message.Id" method="post"
+                                class="d-inline"
+                                onsubmit="return confirm('Are you sure you want to delete message ID @message.Id from @message.Name? This action cannot be undone.');">
+
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash-fill"></i>
+                                    <span>Delete</span>
+                                </button>
+                            </form>
+                        </td>
+
+                        <td>@message.Name</td>
+                        <td>@message.Email</td>
+                        <td>@(message.Message.Length > 70 ? message.Message.Substring(0, 70) + "..." : message.Message)</td>
+                        <td>@message.DateSubmitted.ToShortDateString() @message.DateSubmitted.ToShortTimeString()</td>
+                        <td>
+                            @if (message.IsAnswered)
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Answered</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill"></i> Pending</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     }
 </div>
 

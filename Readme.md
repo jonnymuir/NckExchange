@@ -71,6 +71,14 @@ dotnet publish -c Release --no-self-contained
 ```
 npx playwright test
 ```
+
+Testing email. You can use mailpit in docker is pretty easy to do:
+```
+docker run -d --name mailpit -p 8025:8025 -p 1025:1025 axllent/mailpit
+```
+
+Go to localhost:8025 to see you inbox
+
 ## License
 [MIT](LICENSE)
 

@@ -472,6 +472,7 @@ appsettings-schema.*.json
 **/umbraco/Data/*.sqlite.db
 **/umbraco/Data/*.sqlite.db-shm
 **/umbraco/Data/*.sqlite.db-wal
+Hangfire.db
 
 # Log files
 **/umbraco/Logs/

@@ -136,6 +136,37 @@ public class AdminController(
         }
     }
 
+    // POST: /admin/delete/{id}
+    [HttpPost("delete/{id:int}")]
+    [ValidateAntiForgeryToken] 
+    public async Task<IActionResult> Delete(int id)
+    {
+        using var scope = scopeProvider.CreateScope(autoComplete: true);
+        try
+        {
+            var database = scope.Database;
+
+            var messageToDelete = await database.SingleOrDefaultByIdAsync<ContactMessage>(id);
+
+            if (messageToDelete == null)
+            {
+                ModelState.AddModelError("", "Message not found for delete.");
+                return View();
+            }
+            
+            var rowsAffected = await database.DeleteAsync(messageToDelete);
+            
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting contact message ID {MessageId}", id);
+            ModelState.AddModelError("", "Error deleting message.");
+           
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
     private async Task SendReplyEmail(
         string recipientEmail,
         string originalSenderName,

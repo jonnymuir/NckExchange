@@ -102,6 +102,12 @@ jobs:
             .Recaptcha = {
                 "SiteKey": $recaptchaSiteKey,
                 "SecretKey": $recaptchaSecretKey
+            } |
+            .EmailPollingSettings = {
+                "ImapHost": "mail.livemail.co.uk",
+                "ImapPort": "993",
+                "Password": $smtpPassword,
+                "Username": $smtpUsername
             }' \
             app_publish/appsettings.json > app_publish/appsettings.json.tmp && \
             mv app_publish/appsettings.json.tmp app_publish/appsettings.json
