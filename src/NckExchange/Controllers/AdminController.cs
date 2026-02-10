@@ -213,7 +213,11 @@ public class AdminController(
 
         try
         {
-            await emailSender.SendAsync(emailMessage, "ContactMessageReply");
+            await emailSender.SendAsync(
+                emailMessage,
+                "ContactMessageReply",
+                enableNotification: false,
+                expires: TimeSpan.FromDays(1));
             logger.LogInformation("Email reply sent to {RecipientEmail} for message ID {MessageId}", recipientEmail, model.Id);
         }
         catch (Exception ex)

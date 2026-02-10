@@ -1,30 +1,13 @@
-using Microsoft.Extensions.Options;
-using Umbraco.Cms.Core;
-using Umbraco.Cms.Web.BackOffice.Security;
+using Umbraco.Cms.Api.Management.Security;
 
 namespace NckExchange.ExternalUserLogin.GoogleAuthentication;
 
-public class GoogleBackOfficeExternalLoginProviderOptions : IConfigureNamedOptions<BackOfficeExternalLoginProviderOptions>
+public static class GoogleBackOfficeExternalLoginProviderOptions
 {
     public const string SchemeName = "Google";
 
-    public void Configure(string? name, BackOfficeExternalLoginProviderOptions options)
+    public static void Configure(BackOfficeExternalLoginProviderOptions options)
     {
-        ArgumentNullException.ThrowIfNull(name);
-
-        if (name != Constants.Security.BackOfficeExternalAuthenticationTypePrefix + SchemeName)
-        {
-            return;
-        }
-
-        Configure(options);
-    }
-
-    public void Configure(BackOfficeExternalLoginProviderOptions options)
-    {
-        // Customize the login button
-        options.Icon = "icon-google-fill";
-
         // The following options are only relevant if you
         // want to configure auto-linking on the authentication.
         options.AutoLinkOptions = new ExternalSignInAutoLinkOptions(
@@ -47,7 +30,7 @@ public class GoogleBackOfficeExternalLoginProviderOptions : IConfigureNamedOptio
             // the Umbraco backoffice.
             // Set this to false if you don't want the user to unlink
             // from this external login provider.
-            allowManualLinking: false
+            allowManualLinking: true
         )
         {
             // [OPTIONAL] Callback
@@ -74,10 +57,5 @@ public class GoogleBackOfficeExternalLoginProviderOptions : IConfigureNamedOptio
         // If set to true, it will disable username/password login
         // even if there are other external login providers installed.
         options.DenyLocalLogin = true;
-
-        // [OPTIONAL]
-        // Choose to automatically redirect to the external login provider
-        // effectively removing the login button.
-        options.AutoRedirectLoginToExternalProvider = true;
     }
 }

@@ -2,12 +2,15 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using Umbraco.Cms.Core.Models.PublishedContent;
 using Umbraco.Cms.Core.Web;
+using Umbraco.Cms.Web.Common;
 using Umbraco.Cms.Web.Common.PublishedModels;
 
 
 namespace NckExchange.Controllers;
 
-public class SitemapController(IUmbracoContextFactory umbracoContextFactory) : Controller
+public class SitemapController(
+    IUmbracoContextFactory umbracoContextFactory,
+    IUmbracoHelperAccessor umbracoHelperAccessor) : Controller
 {
     [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Any)]
     [Route("sitemap.xml")]
@@ -20,9 +23,12 @@ public class SitemapController(IUmbracoContextFactory umbracoContextFactory) : C
 
         using (var cref = umbracoContextFactory.EnsureUmbracoContext())
         {
-            var publishedContentQuery = cref.UmbracoContext.Content;
+            if (!umbracoHelperAccessor.TryGetUmbracoHelper(out var umbracoHelper))
+            {
+                return StatusCode(503);
+            }
 
-            var root = publishedContentQuery?.GetAtRoot().FirstOrDefault();
+            var root = umbracoHelper.ContentAtRoot().FirstOrDefault();
             if (root != null)
             {
                 var allPages = root.DescendantsOrSelf()

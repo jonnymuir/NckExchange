@@ -44,7 +44,9 @@ public class RunContactMessagesMigrationPlan(
 
         // Create the upgrader and execute the plan
         var upgrader = new Upgrader(migrationPlan);
-        upgrader.Execute(migrationPlanExecutor, coreScopeProvider, keyValueService);
+        upgrader.ExecuteAsync(migrationPlanExecutor, coreScopeProvider, keyValueService)
+            .GetAwaiter()
+            .GetResult();
 
         logger.LogInformation("ContactMessages migration plan executed successfully.");
     }

@@ -3,9 +3,9 @@ using NckExchange.Core.Models;
 
 namespace NckExchange.Core.Migrations;
 
-public class AddContactMessagesTable(IMigrationContext context) : MigrationBase(context)
+public class AddContactMessagesTable(IMigrationContext context) : AsyncMigrationBase(context)
 {
-    protected override void Migrate()
+    protected override Task MigrateAsync()
     {
         Logger.LogDebug("Running migration {MigrationName}", nameof(AddContactMessagesTable));
 
@@ -19,5 +19,7 @@ public class AddContactMessagesTable(IMigrationContext context) : MigrationBase(
         {
             Logger.LogDebug("Table {TableName} already exists, skipping creation.", "ContactMessages");
         }
+
+        return Task.CompletedTask;
     }
 }

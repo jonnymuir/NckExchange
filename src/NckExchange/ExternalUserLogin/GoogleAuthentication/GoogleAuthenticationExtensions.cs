@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Identity;
+using Umbraco.Cms.Api.Management.Security;
 using Umbraco.Cms.Core.Security;
 using Umbraco.Cms.Core.Services;
 using Microsoft.Extensions.Logging;
@@ -11,31 +12,31 @@ public static class GoogleAuthenticationExtensions
 {
     public static IUmbracoBuilder AddGoogleAuthentication(this IUmbracoBuilder builder, ConfigurationManager configuration)
     {
-        builder.Services.ConfigureOptions<GoogleBackOfficeExternalLoginProviderOptions>();
-
         builder.AddBackOfficeExternalLogins(logins => logins.AddBackOfficeLogin(
                 backOfficeAuthenticationBuilder =>
                 {
-                    var schemeName =
-                        backOfficeAuthenticationBuilder.SchemeForBackOffice(GoogleBackOfficeExternalLoginProviderOptions
-                            .SchemeName);
+                    var schemeName = BackOfficeAuthenticationBuilder.SchemeForBackOffice(
+                        GoogleBackOfficeExternalLoginProviderOptions.SchemeName);
 
                     ArgumentNullException.ThrowIfNull(schemeName);
 
                     backOfficeAuthenticationBuilder.AddGoogle(
                         schemeName,
+                        "Google",
                         options =>
                         {
                             options.CallbackPath = "/umbraco-google-signin";
                             options.ClientId = configuration["Authentication:Google:ClientId"]!;
                             options.ClientSecret = configuration["Authentication:Google:ClientSecret"]!;
+                            options.AdditionalAuthorizationParameters["prompt"] = "select_account";
 
                             options.Events = new OAuthEvents
                             {
                                 OnTicketReceived = async context =>
                                 {
                                     var httpContext = context.HttpContext;
-                                    var logger = httpContext.RequestServices.GetRequiredService<ILogger<GoogleBackOfficeExternalLoginProviderOptions>>();
+                                    var loggerFactory = httpContext.RequestServices.GetRequiredService<ILoggerFactory>();
+                                    var logger = loggerFactory.CreateLogger("GoogleBackOfficeAuth");
                                     var backOfficeUserManager = httpContext.RequestServices.GetRequiredService<IBackOfficeUserManager>();
                                     var userService = httpContext.RequestServices.GetRequiredService<IUserService>();
 
@@ -143,7 +144,8 @@ public static class GoogleAuthenticationExtensions
                                 }
                             };
                         });
-                }));
+                },
+                GoogleBackOfficeExternalLoginProviderOptions.Configure));
         return builder;
     }
 }

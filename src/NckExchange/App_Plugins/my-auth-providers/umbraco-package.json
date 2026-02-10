@@ -1,0 +1,23 @@
+{
+  "$schema": "../../umbraco-package-schema.json",
+  "name": "My Auth Package",
+  "version": "1.0.0",
+  "allowPublicAccess": true,
+  "extensions": [
+    {
+      "type": "authProvider",
+      "alias": "NckExchange.AuthProvider.Google",
+      "name": "Google",
+      "forProviderName": "Umbraco.Google",
+      "meta": {
+        "label": "Google",
+        "defaultView": {
+          "icon": "icon-google"
+        },
+        "linking": {
+          "allowManualLinking": true
+        }
+      }
+    }
+  ]
+}

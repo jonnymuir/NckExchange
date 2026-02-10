@@ -6,7 +6,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build", 
-            "program": "${workspaceFolder}/src/NckExchange/bin/Debug/net8.0/NckExchange.dll", 
+            "program": "${workspaceFolder}/src/NckExchange/bin/Debug/net10.0/NckExchange.dll", 
             "args": [],
             "cwd": "${workspaceFolder}/src/NckExchange", 
             "stopAtEntry": false,

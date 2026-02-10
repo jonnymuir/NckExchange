@@ -1,6 +1,9 @@
-using Slimsy.DependencyInjection;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
+using Slimsy.DependencyInjection;
+using Umbraco.Cms.Core;
 using NckExchange.ExternalUserLogin.GoogleAuthentication;
+using Umbraco.Cms.Api.Management.Security;
 
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -16,6 +19,7 @@ builder.Services.AddAuthentication()
 
         options.CallbackPath = "/signin-google";
         options.SignInScheme = IdentityConstants.ExternalScheme;
+        options.AdditionalAuthorizationParameters["prompt"] = "select_account";
     });
 
 builder.Services.ConfigureApplicationCookie(options =>
@@ -60,6 +64,58 @@ WebApplication app = builder.Build();
 
 await app.BootUmbracoAsync();
 
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    var schemeProvider = app.Services.GetRequiredService<IAuthenticationSchemeProvider>();
+    var schemes = await schemeProvider.GetAllSchemesAsync();
+    var backOfficeSchemes = schemes
+        .Where(s => s.Name.StartsWith("Umbraco."))
+        .Select(s => s.Name)
+        .OrderBy(s => s)
+        .ToArray();
+
+    if (backOfficeSchemes.Length == 0)
+    {
+        logger.LogWarning("No backoffice external auth schemes registered.");
+    }
+    else
+    {
+        logger.LogInformation("Backoffice external auth schemes: {Schemes}", string.Join(", ", backOfficeSchemes));
+    }
+
+    var externalLoginProviders = app.Services.GetRequiredService<IBackOfficeExternalLoginProviders>();
+    var providers = await externalLoginProviders.GetBackOfficeProvidersAsync();
+    var providerNames = providers
+        .Select(p => p.ExternalLoginProvider.AuthenticationType)
+        .OrderBy(p => p)
+        .ToArray();
+
+    if (providerNames.Length == 0)
+    {
+        logger.LogWarning("No backoffice external login providers returned by API.");
+    }
+    else
+    {
+        logger.LogInformation("Backoffice external login providers: {Providers}", string.Join(", ", providerNames));
+    }
+}
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapGet("/_debug/backoffice-external-logins", async (IBackOfficeExternalLoginProviders providers) =>
+    {
+        var items = await providers.GetBackOfficeProvidersAsync();
+        var result = items.Select(item => new
+        {
+            item.ExternalLoginProvider.AuthenticationType,
+            item.ExternalLoginProvider.Options.DenyLocalLogin,
+            DisplayName = item.AuthenticationScheme.DisplayName
+        });
+
+        return Results.Ok(result);
+    });
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -71,7 +127,6 @@ app.UseUmbraco()
     })
     .WithEndpoints(u =>
     {
-        u.UseInstallerEndpoints();
         u.UseBackOfficeEndpoints();
         u.UseWebsiteEndpoints();
     });

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Umbraco.Cms.Web.Common.Controllers;
 using NckExchange.Core.Models; // Your ContactMessage model
 using NckExchange.Models; // Your ContactFormViewModel
 using Umbraco.Cms.Infrastructure.Scoping;
@@ -14,7 +13,7 @@ public class ContactApiController(
     IScopeProvider scopeProvider,
     ILogger<ContactApiController> logger,
     IConfiguration configuration,
-    IHttpClientFactory httpClientFactory) : UmbracoApiController
+    IHttpClientFactory httpClientFactory) : ControllerBase
 {
     [HttpPost]
     [ValidateAntiForgeryToken]
