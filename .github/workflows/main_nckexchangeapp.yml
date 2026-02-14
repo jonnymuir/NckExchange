@@ -332,16 +332,21 @@ jobs:
             
             # Capture the output of the lftp command
             OUTPUT=$(lftp -f lftp_commands.txt 2>&1)
+            ERROR_LINES=$(echo "$OUTPUT" | grep -E "Access failed|Transfer failed|Login failed|Not connected|421|530|550" || true)
+            UNIGNORED_ERRORS=$(echo "$ERROR_LINES" | grep -v -E "Cannot create a file when that file already exists" || true)
             
             # Check if the output contains the specific error message.
             # The || true at the end prevents grep from failing the script
             # if the string is not found, allowing the 'if' condition to handle the logic.
-            if echo "$OUTPUT" | grep -q "Access failed: I/O error." || echo "$OUTPUT" | grep -q "Transfer failed"; then
-              echo "Deployment failed due to I/O error or failed transfer. Retrying in $RETRY_DELAY seconds..."
+            if [ -n "$UNIGNORED_ERRORS" ]; then
+              echo "Deployment failed due to FTP errors. Retrying in $RETRY_DELAY seconds..."
               echo "$OUTPUT" # Print the output for debugging
               sleep $RETRY_DELAY
               ATTEMPT=$((ATTEMPT+1))
             else
+              if echo "$ERROR_LINES" | grep -q "Cannot create a file when that file already exists"; then
+                echo "Non-fatal: mkdir already exists on server. Continuing."
+              fi
               echo "Deployment successful."
               echo "$OUTPUT" # Print the output for successful run
               exit 0
