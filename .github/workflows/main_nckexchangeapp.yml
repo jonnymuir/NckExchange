@@ -183,6 +183,9 @@ jobs:
           echo "# lftp commands generated for deployment\n" > lftp_commands.txt
           echo "set ftp:ssl-force true\n" >> lftp_commands.txt
           echo "set cmd:fail-exit no\n" >> lftp_commands.txt
+          echo "set cmd:trace yes\n" >> lftp_commands.txt
+          echo "set xfer:log yes\n" >> lftp_commands.txt
+          echo "set xfer:log-file xfer.log\n" >> lftp_commands.txt
 
           # Conditional open command for security
           if [ "${{ github.event.inputs.dry-run }}" == "true" ]; then
@@ -362,6 +365,10 @@ jobs:
               fi
               echo "Deployment successful."
               echo "$OUTPUT" # Print the output for successful run
+              if [ -f xfer.log ]; then
+                echo "Transfer log:"
+                cat xfer.log
+              fi
               exit 0
             fi
           done
