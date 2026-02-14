@@ -40,6 +40,20 @@ jobs:
       - name: dotnet publish
         run: dotnet publish -c Release -o "publish" --no-self-contained
 
+      - name: Ensure my-auth-providers is in publish
+        shell: pwsh
+        run: |
+          $source = "src/NckExchange/App_Plugins/my-auth-providers"
+          $dest = "publish/App_Plugins/my-auth-providers"
+          if (Test-Path $source) {
+            New-Item -ItemType Directory -Path $dest -Force | Out-Null
+            Copy-Item -Path "$source/*" -Destination $dest -Recurse -Force
+            Write-Host "Published App_Plugins/my-auth-providers:"
+            Get-ChildItem -Recurse -Path $dest | ForEach-Object { $_.FullName }
+          } else {
+            Write-Error "Missing $source in repo."
+          }
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
