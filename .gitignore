@@ -473,6 +473,8 @@ appsettings-schema.*.json
 **/umbraco/Data/*.sqlite.db-shm
 **/umbraco/Data/*.sqlite.db-wal
 Hangfire.db
+Handfire.db-shm
+Handfire.db-wal
 
 # Log files
 **/umbraco/Logs/
@@ -487,3 +489,4 @@ Hangfire.db
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
