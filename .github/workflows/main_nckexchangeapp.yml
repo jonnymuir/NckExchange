@@ -242,6 +242,13 @@ jobs:
           }
           ' local_sorted.txt remote_sorted.txt
 
+          if [ -s all_files_to_deploy.txt ]; then
+            echo "Files scheduled for upload:"
+            cat all_files_to_deploy.txt
+          else
+            echo "No files scheduled for upload."
+          fi
+
           echo "::endgroup::"
 
 
@@ -261,6 +268,7 @@ jobs:
             fi
             
             local_file="app_publish/$file"
+            echo "Queue upload: $local_file -> $remote_file"
             printf 'put "%s" -o "%s";\n' "$local_file" "$remote_file" >> lftp_commands.txt
           done < all_files_to_deploy.txt
           echo "::endgroup::"
@@ -272,6 +280,8 @@ jobs:
           echo "::group::Create rm commands"
 
           if [ -s files_to_remove.txt ]; then
+            echo "Files scheduled for removal:"
+            cat files_to_remove.txt
 
             while IFS=$'\n' read -r file; do
               case "$file" in
