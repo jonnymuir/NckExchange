@@ -102,7 +102,6 @@ jobs:
                 "umbracoDbDSN": $dsn,
                 "umbracoDbDSN_ProviderName": "Microsoft.Data.SqlClient"
             } |
-            .uSync.Settings.ImportAtStartup = true |
             .Umbraco.CMS.Global.Smtp = {
                 "Host": "smtp.livemail.co.uk",
                 "Port": 25,

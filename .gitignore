@@ -198,6 +198,9 @@ PublishScripts/
 # NuGet Packages
 *.nupkg
 # NuGet Symbol Packages
+
+# Umbraco uSync exports
+src/NckExchange/uSync/
 *.snupkg
 # The packages folder can be ignored because of Package Restore
 **/[Pp]ackages/*
@@ -489,4 +492,3 @@ Handfire.db-wal
 /playwright-report/
 /blob-report/
 /playwright/.cache/
-
