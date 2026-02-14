@@ -1,6 +1,6 @@
 # Docs for the GitHub Actions SFTP Deploy action: https://github.com/marketplace/actions/ftp-sftp-file-deployer
 
-name: Build and Deploy Umbraco App to Fasthosts
+name: Build and Deploy Umbraco App to Hosting Server
 
 on:
   push:
@@ -52,6 +52,8 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    env:
+      WEBSITE_ROOT: ${{ secrets.WEBSITE_ROOT }}
 
     steps:
       - uses: actions/checkout@v4
@@ -112,7 +114,7 @@ jobs:
             app_publish/appsettings.json > app_publish/appsettings.json.tmp && \
             mv app_publish/appsettings.json.tmp app_publish/appsettings.json
             
-      # Upload to Fasthosts
+      # Upload to Hosting Server
       - name: "Install dependencies"
         shell: bash
         run: |
@@ -142,7 +144,7 @@ jobs:
           echo "::group::Attempting to download remote checksum file"
           lftp -c "open sftp://${SFTP_USERNAME}:${SFTP_PASSWORD}@${SFTP_HOST}; \
             set sftp:auto-confirm yes; \
-            get -O . /htdocs/checksums.txt || rm ./checksums.txt; \
+            get -O . ${WEBSITE_ROOT}/checksums.txt || rm ./checksums.txt; \
             bye"
           
           mv checksums.txt remote_checksums.txt || touch remote_checksums.txt
@@ -250,7 +252,7 @@ jobs:
           echo "::group::Create ftp commands"
           declare -A created_dirs
           while IFS= read -r file; do
-            remote_file="/htdocs/$file"
+            remote_file="${WEBSITE_ROOT}/$file"
             remote_dir="$(dirname "$remote_file")"
             
             if [[ -z "${created_dirs["$remote_dir"]}" ]]; then
@@ -286,7 +288,7 @@ jobs:
                   printf "Skipping removal of Umbraco Media file: %s\n" "$file" >> lftp_commands.txt
                   ;;
                 *)
-                  printf 'rm "%s/%s";\n' "/htdocs" "$file" >> lftp_commands.txt
+                  printf 'rm "%s/%s";\n' "${WEBSITE_ROOT}" "$file" >> lftp_commands.txt
                   ;;
               esac
             done < files_to_remove.txt
@@ -313,7 +315,7 @@ jobs:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Creating maintenance page app_offline.htm to take site offline"
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put 'app_offline.htm' -o '/htdocs/app_offline.htm'"
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put 'app_offline.htm' -o '${WEBSITE_ROOT}/app_offline.htm'"
           echo "::endgroup::"
           
       - name: "Execute lftp commands with retries"
@@ -367,7 +369,7 @@ jobs:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Uploading new checksums file"
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put 'app_publish/checksums.txt' -o '/htdocs/checksums.txt'"
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put 'app_publish/checksums.txt' -o '${WEBSITE_ROOT}/checksums.txt'"
           echo "::endgroup::"
 
       - name: "Take site out of maintenance mode"
@@ -382,7 +384,7 @@ jobs:
 
           mkdir -p ./temp/usync/v9
           touch ./temp/usync/v9/usync.once
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put './temp/usync/v9/usync.once' -o '/htdocs/uSync/v9/usync.once'; rm '/htdocs/app_offline.htm'"
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put './temp/usync/v9/usync.once' -o '${WEBSITE_ROOT}/uSync/v9/usync.once'; rm '${WEBSITE_ROOT}/app_offline.htm'"
           echo "::endgroup::"
       
   e2e_tests:
