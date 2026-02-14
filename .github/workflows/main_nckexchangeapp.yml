@@ -142,8 +142,8 @@ jobs:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Attempting to download remote checksum file"
-          lftp -c "open sftp://${SFTP_USERNAME}:${SFTP_PASSWORD}@${SFTP_HOST}; \
-            set sftp:auto-confirm yes; \
+          lftp -c "set ftp:ssl-force true; \
+            open ftp://${SFTP_USERNAME}:${SFTP_PASSWORD}@${SFTP_HOST}; \
             get -O . ${WEBSITE_ROOT}/checksums.txt || rm ./checksums.txt; \
             bye"
           
@@ -181,13 +181,13 @@ jobs:
           LC_ALL=C sort -t$'\t' -k 2,2 remote_checksums.txt > remote_sorted.txt
           
           echo "# lftp commands generated for deployment\n" > lftp_commands.txt
-          echo "set sftp:auto-confirm yes\n" >> lftp_commands.txt
+          echo "set ftp:ssl-force true\n" >> lftp_commands.txt
 
           # Conditional open command for security
           if [ "${{ github.event.inputs.dry-run }}" == "true" ]; then
-            printf 'open "sftp://[USER]@[HOST]:22";\n' >> lftp_commands.txt
+            printf 'open "ftp://[USER]@[HOST]";\n' >> lftp_commands.txt
           else
-            printf 'open "sftp://%s:%s@%s:22";\n' \
+            printf 'open "ftp://%s:%s@%s";\n' \
               "${SFTP_USERNAME}" \
               "${SFTP_PASSWORD}" \
               "${SFTP_HOST}" >> lftp_commands.txt
@@ -315,7 +315,7 @@ jobs:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Creating maintenance page app_offline.htm to take site offline"
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put 'app_offline.htm' -o '${WEBSITE_ROOT}/app_offline.htm'"
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" ftp://${SFTP_HOST} -e "set ftp:ssl-force true; put 'app_offline.htm' -o '${WEBSITE_ROOT}/app_offline.htm'"
           echo "::endgroup::"
           
       - name: "Execute lftp commands with retries"
@@ -369,7 +369,7 @@ jobs:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
         run: |
           echo "::group::Uploading new checksums file"
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put 'app_publish/checksums.txt' -o '${WEBSITE_ROOT}/checksums.txt'"
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" ftp://${SFTP_HOST} -e "set ftp:ssl-force true; put 'app_publish/checksums.txt' -o '${WEBSITE_ROOT}/checksums.txt'"
           echo "::endgroup::"
 
       - name: "Take site out of maintenance mode"
@@ -382,9 +382,9 @@ jobs:
         run: |
           echo "::group::Removing app_offline.htm to bring site online"
 
-          mkdir -p ./temp/usync/v9
-          touch ./temp/usync/v9/usync.once
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" sftp://${SFTP_HOST}:22 -e "set sftp:auto-confirm yes; put './temp/usync/v9/usync.once' -o '${WEBSITE_ROOT}/uSync/v9/usync.once'; rm '${WEBSITE_ROOT}/app_offline.htm'"
+          mkdir -p ./temp/usync/v17
+          touch ./temp/usync/v17/usync.once
+          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" ftp://${SFTP_HOST} -e "set ftp:ssl-force true; put './temp/usync/v17/usync.once' -o '${WEBSITE_ROOT}/uSync/v17/usync.once'; rm '${WEBSITE_ROOT}/app_offline.htm'"
           echo "::endgroup::"
       
   e2e_tests:
