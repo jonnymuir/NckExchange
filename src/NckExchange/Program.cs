@@ -4,6 +4,7 @@ using Slimsy.DependencyInjection;
 using Umbraco.Cms.Core;
 using NckExchange.ExternalUserLogin.GoogleAuthentication;
 using Umbraco.Cms.Api.Management.Security;
+using Umbraco.Cms.Core.Services;
 
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -130,5 +131,35 @@ app.UseUmbraco()
         u.UseBackOfficeEndpoints();
         u.UseWebsiteEndpoints();
     });
+
+
+app.MapGet("/debug-umbraco-core", (IRuntimeState runtimeState, IConfiguration config) =>
+{
+    var output = new System.Text.StringBuilder();
+    output.AppendLine("UMBRACO CORE INTERNAL STATE");
+    output.AppendLine("===========================");
+    
+    // 1. What level is the CMS currently at?
+    output.AppendLine($"Current Level: {runtimeState.Level}"); 
+    
+    // 2. Is there a reason for this level?
+    // In v17, if it's Install, it's often because it couldn't validate the database.
+    output.AppendLine($"Reason: {runtimeState.Reason}");
+
+    // 3. Check the internal ID comparison directly
+    var configId = config["Umbraco:CMS:Global:Id"];
+    output.AppendLine($"Config GlobalId: {configId}");
+    
+    // 4. Check if the database is even reachable by the Core
+    // This property returns the exception if the DB check failed
+    if (runtimeState.Level == RuntimeLevel.Install)
+    {
+        output.AppendLine("\nDIAGNOSTIC HINT:");
+        output.AppendLine("If level is Install, Umbraco failed to find the 'umbracoUser' table ");
+        output.AppendLine("or the Global ID in the database did not match the one above.");
+    }
+
+    return output.ToString();
+});
 
 await app.RunAsync();
