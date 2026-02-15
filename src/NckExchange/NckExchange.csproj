@@ -6,12 +6,12 @@
     <UserSecretsId>bf668a52-832f-460b-b268-f11f0e1e2b69</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="App_Plugins/BlockGridPreviews/navigationgroup.html" />
-    <Content Include="App_Plugins/my-auth-providers/**" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+    <Content Include="App_Plugins/BlockGridPreviews/navigationgroup.html" CopyToPublishDirectory="Always" TargetPath="wwwroot/App_Plugins/BlockGridPreviews/navigationgroup.html" />
+    <Content Include="App_Plugins/my-auth-providers/**" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" TargetPath="wwwroot/App_Plugins/my-auth-providers/%(RecursiveDir)%(Filename)%(Extension)" />
     <Content Include="config/**" CopyToOutputDirectory="Always" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App_Plugins/BlockGridPreviews/package.manifest" />
+    <Content Include="App_Plugins/BlockGridPreviews/package.manifest" CopyToPublishDirectory="Always" TargetPath="wwwroot/App_Plugins/BlockGridPreviews/package.manifest" />
   </ItemGroup>
 
   <ItemGroup>
