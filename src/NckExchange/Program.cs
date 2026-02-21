@@ -62,22 +62,6 @@ umbracoBuilder.AddMembersIdentity();
 umbracoBuilder.Build();
 
 WebApplication app = builder.Build();
-
-// Move this to the bottom, JUST before await app.RunAsync();
-app.MapGet("/debug-umbraco-core", (IRuntimeState runtimeState, IConfiguration config) =>
-{
-    var output = new System.Text.StringBuilder();
-    output.AppendLine("UMBRACO CORE INTERNAL STATE");
-    output.AppendLine("===========================");
-    output.AppendLine($"Current Level: {runtimeState.Level}"); 
-    output.AppendLine($"Reason: {runtimeState.Reason}");
-    output.AppendLine($"Config GlobalId: {config["Umbraco:CMS:Global:Id"]}");
-    
-    // This is the direct 'why' from the source code
-    return Results.Text(output.ToString(), "text/plain");
-}).AllowAnonymous(); // Bypass any auth redirects too
-
-
 await app.BootUmbracoAsync();
 
 {
