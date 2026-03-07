@@ -113,304 +113,44 @@ jobs:
             app_publish/appsettings.json > app_publish/appsettings.json.tmp && \
             mv app_publish/appsettings.json.tmp app_publish/appsettings.json
             
-      # Upload to Hosting Server
-      - name: "Install dependencies"
-        shell: bash
-        run: |
-          echo "::group::Install packages"
-          DEBIAN_FRONTEND=noninteractive sudo apt-get update && sudo apt-get install --no-install-recommends -y lftp
-          echo "::endgroup::"
-
-      - name: "Generate local checksums"
-        shell: bash
-        run: |
-          echo "::group::Generating checksums for local files"
-          cd app_publish
-          
-          # Use find's -print0 and xargs' -0 to handle all filenames and produce
-          # checksums with a consistent space separator.
-          find . -type f -print0 | xargs -0 md5sum > checksums.txt
-          
-          echo "::endgroup::"
-      
-      - name: "Download remote checksums"
-        shell: bash
-        env:
-          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
-          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
-          SFTP_HOST: ${{ secrets.SFTP_HOST }}
-        run: |
-          echo "::group::Attempting to download remote checksum file"
-          lftp -c "set ftp:ssl-force true; \
-            open ftp://${SFTP_USERNAME}:${SFTP_PASSWORD}@${SFTP_HOST}; \
-            get -O . ${WEBSITE_ROOT}/checksums.txt || rm ./checksums.txt; \
-            bye"
-          
-          mv checksums.txt remote_checksums.txt || touch remote_checksums.txt
-          echo "::endgroup::"
-
-      - name: "Compare checksums"
-        shell: bash
-        id: generate_checksums
-        env:
-          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
-          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
-          SFTP_HOST: ${{ secrets.SFTP_HOST }}
-        run: |
-          echo "::group::Comparing checksums"
-          
-          # Standardize both files to a tab-separated format
-          # This replaces one or more spaces at the beginning of the filename
-          # with a single tab, ensuring a clean format for join.
-          sed -i -E 's/^([0-9a-f]{32})[[:space:]]+/\1\t/' "app_publish/checksums.txt"
-          sed -i -E 's/^([0-9a-f]{32})[[:space:]]+/\1\t/' remote_checksums.txt
-
-          # Remove the './' prefix from filenames in both checksum files
-          sed -i -E 's/\t\.\//\t/' "app_publish/checksums.txt"
-          sed -i -E 's/\t\.\//\t/' remote_checksums.txt
-
-          # Remove any trailing whitespace and/or carriage returns to ensure consistent sorting.
-          sed -i -E 's/[\r[:space:]]+$//' "app_publish/checksums.txt"
-          sed -i -E 's/[\r[:space:]]+$//' remote_checksums.txt
-
-          sed -i -E 's/[[:space:]]\t/\t/g; s/[ \t]*$//' "app_publish/checksums.txt"
-          sed -i -E 's/[[:space:]]\t/\t/g; s/[ \t]*$//' remote_checksums.txt
-
-          LC_ALL=C sort -t$'\t' -k 2,2 "app_publish/checksums.txt" > local_sorted.txt
-          LC_ALL=C sort -t$'\t' -k 2,2 remote_checksums.txt > remote_sorted.txt
-          
-          echo "# lftp commands generated for deployment\n" > lftp_commands.txt
-          echo "set ftp:ssl-force true\n" >> lftp_commands.txt
-          echo "set cmd:fail-exit no\n" >> lftp_commands.txt
-          echo "set cmd:trace yes\n" >> lftp_commands.txt
-          echo "set xfer:log yes\n" >> lftp_commands.txt
-          echo "set xfer:log-file xfer.log\n" >> lftp_commands.txt
-
-          # Conditional open command for security
-          if [ "${{ github.event.inputs.dry-run }}" == "true" ]; then
-            printf 'open "ftp://[USER]@[HOST]";\n' >> lftp_commands.txt
-          else
-            printf 'open "ftp://%s:%s@%s";\n' \
-              "${SFTP_USERNAME}" \
-              "${SFTP_PASSWORD}" \
-              "${SFTP_HOST}" >> lftp_commands.txt
-          fi
-
-          echo "::endgroup::"
-
-      - name: "lftp_commands.txt: Upload checksum files"
-        if: ${{ github.event.inputs.dry-run == 'true' }}
-        uses: actions/upload-artifact@v4
+      - name: "Stop Umbraco Service (Release file locks)"
+        if: ${{ github.event.inputs.dry-run != 'true' }}
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          name: sorted-checksum-files
-          path: |
-            local_sorted.txt
-            remote_sorted.txt
-          retention-days: 1
-      
-      - name: "Generate files to update"
-        shell: bash
-        id: generate_commands_update
-        run: |
-          echo "::group::Files to update"
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: systemctl stop nckexchange
 
-          awk -F'\t' '
-          BEGIN {
-              FS="\t";
-              deploy_file = "all_files_to_deploy.txt";
-              remove_file = "files_to_remove.txt";
-          }
-          FNR==NR {
-              local_files[$2] = $1;
-              next;
-          }
-          {
-              remote_file = $2;
-              remote_checksum = $1;
-
-              if (remote_file in local_files) {
-                  local_checksum = local_files[remote_file];
-                  if (local_checksum != remote_checksum) {
-                      print remote_file > deploy_file;
-                  }
-                  delete local_files[remote_file];
-              } else {
-                  print remote_file > remove_file;
-              }
-          }
-          END {
-              for (new_file in local_files) {
-                  print new_file > deploy_file;
-              }
-          }
-          ' local_sorted.txt remote_sorted.txt
-
-          if [ -s all_files_to_deploy.txt ]; then
-            echo "Files scheduled for upload:"
-            cat all_files_to_deploy.txt
-          else
-            echo "No files scheduled for upload."
-          fi
-
-          echo "::endgroup::"
-
-
-      - name: "Generate create ftp commands"
-        shell: bash
-        id: generate_commands_ftp
-        run: |
-          echo "::group::Create ftp commands"
-          declare -A created_dirs
-          while IFS= read -r file; do
-            remote_file="${WEBSITE_ROOT}/$file"
-            remote_dir="$(dirname "$remote_file")"
-            
-            if [[ -z "${created_dirs["$remote_dir"]}" ]]; then
-              printf 'mkdir -p "%s";\n' "$remote_dir" >> lftp_commands.txt
-              created_dirs["$remote_dir"]=1
-            fi
-            
-            local_file="app_publish/$file"
-            echo "Queue upload: $local_file -> $remote_file"
-            printf 'put "%s" -o "%s";\n' "$local_file" "$remote_file" >> lftp_commands.txt
-          done < all_files_to_deploy.txt
-          echo "::endgroup::"
-
-      - name: "Generate rm commands"
-        shell: bash
-        id: generate_commands_rm
-        run: |
-          echo "::group::Create rm commands"
-
-          if [ -s files_to_remove.txt ]; then
-            echo "Files scheduled for removal:"
-            cat files_to_remove.txt
-
-            while IFS=$'\n' read -r file; do
-              case "$file" in
-                "app_offline.htm")
-                  printf "Skipping removal of maintenance page: %s\n" "$file" >> lftp_commands.txt
-                  ;;
-                wwwroot/umbraco/Data/*)
-                  printf "Skipping removal of Umbraco Data file: %s\n" "$file" >> lftp_commands.txt
-                  ;;
-                wwwroot/umbraco/Logs/*)
-                  printf "Skipping removal of Umbraco Logs file: %s\n" "$file" >> lftp_commands.txt
-                  ;;
-                wwwroot/media/*)
-                  printf "Skipping removal of Umbraco Media file: %s\n" "$file" >> lftp_commands.txt
-                  ;;
-                *)
-                  printf 'rm "%s/%s";\n' "${WEBSITE_ROOT}" "$file" >> lftp_commands.txt
-                  ;;
-              esac
-            done < files_to_remove.txt
-
-          else
-            echo "No files to remove."
-          fi
-          echo "::endgroup::"
-
-      - name: "End commands file"
-        shell: bash
-        run: |
-          echo "::group::End commands file"
-
-          echo "bye" >> lftp_commands.txt
-          echo "::endgroup::"
-      
-      - name: "Put site in maintenance mode"
+      - name: "Secure Copy (SCP) files to VPS"
         if: ${{ github.event.inputs.dry-run != 'true' }}
-        shell: bash
-        env:
-          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
-          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
-          SFTP_HOST: ${{ secrets.SFTP_HOST }}
-        run: |
-          echo "::group::Creating maintenance page app_offline.htm to take site offline"
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" ftp://${SFTP_HOST} -e "set ftp:ssl-force true; put 'app_offline.htm' -o '${WEBSITE_ROOT}/app_offline.htm'"
-          echo "::endgroup::"
-          
-      - name: "Execute lftp commands with retries"
-        if: ${{ github.event.inputs.dry-run != 'true' }}
-        shell: bash
-        run: |
-          echo "::group::Executing deployment commands with retries"
-          MAX_RETRIES=5
-          RETRY_DELAY=10
-          ATTEMPT=1
-          
-          while [ $ATTEMPT -le $MAX_RETRIES ]; do
-            echo "Attempt $ATTEMPT of $MAX_RETRIES"
-            
-            # Capture the output of the lftp command
-            OUTPUT=$(lftp -f lftp_commands.txt 2>&1)
-            LFTP_STATUS=$?
-            ERROR_LINES=$(echo "$OUTPUT" | grep -E "Access failed|Transfer failed|Login failed|Not connected|421|530|550" || true)
-            UNIGNORED_ERRORS=$(echo "$ERROR_LINES" | grep -v -E "Cannot create a file when that file already exists" || true)
-            HAS_IGNORED_MKDIR_ERROR=$(echo "$ERROR_LINES" | grep -q "Cannot create a file when that file already exists" && echo "yes" || echo "no")
-            
-            # Check if the output contains the specific error message.
-            # The || true at the end prevents grep from failing the script
-            # if the string is not found, allowing the 'if' condition to handle the logic.
-            if [ -n "$UNIGNORED_ERRORS" ] || { [ $LFTP_STATUS -ne 0 ] && [ "$HAS_IGNORED_MKDIR_ERROR" != "yes" ]; }; then
-              echo "Deployment failed due to FTP errors. Retrying in $RETRY_DELAY seconds..."
-              echo "$OUTPUT" # Print the output for debugging
-              sleep $RETRY_DELAY
-              ATTEMPT=$((ATTEMPT+1))
-            else
-              if [ "$HAS_IGNORED_MKDIR_ERROR" = "yes" ]; then
-                echo "Non-fatal: mkdir already exists on server. Continuing."
-              fi
-              echo "Deployment successful."
-              echo "$OUTPUT" # Print the output for successful run
-              if [ -f xfer.log ]; then
-                echo "Transfer log:"
-                cat xfer.log
-              fi
-              exit 0
-            fi
-          done
-          
-          echo "Deployment failed after $MAX_RETRIES attempts."
-          exit 1
-          echo "::endgroup::"      
-      - name: "Dry Run: Upload LFTP command files"
-        if: ${{ github.event.inputs.dry-run == 'true' }}
-        uses: actions/upload-artifact@v4
+        uses: appleboy/scp-action@v0.1.7
         with:
-          name: lftp_commands-files
-          path: |
-            lftp_commands.txt
-          retention-days: 1
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: "app_publish/*"
+          target: "/var/www/nckexchange/"
+          strip_components: 1 # This strips the "app_publish/" folder name from the destination path
 
-      - name: "Upload new checksums file"
+      - name: "Trigger uSync, Fix Permissions, and Start Service"
         if: ${{ github.event.inputs.dry-run != 'true' }}
-        shell: bash
-        env:
-          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
-          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
-          SFTP_HOST: ${{ secrets.SFTP_HOST }}
-        run: |
-          echo "::group::Uploading new checksums file"
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" ftp://${SFTP_HOST} -e "set ftp:ssl-force true; put 'app_publish/checksums.txt' -o '${WEBSITE_ROOT}/checksums.txt'"
-          echo "::endgroup::"
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            # Trigger uSync to run on next boot
+            mkdir -p /var/www/nckexchange/uSync/v17/
+            touch /var/www/nckexchange/uSync/v17/usync.once
+            
+            # Ensure the Linux web user owns the newly uploaded files
+            chown -R www-data:www-data /var/www/nckexchange
+            
+            # Start the application back up
+            systemctl start nckexchange
 
-      - name: "Take site out of maintenance mode"
-        if: ${{ github.event.inputs.dry-run != 'true' }}
-        shell: bash
-        env:
-          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
-          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
-          SFTP_HOST: ${{ secrets.SFTP_HOST }}
-        run: |
-          echo "::group::Removing app_offline.htm to bring site online"
-
-          mkdir -p ./temp/usync/v17
-          touch ./temp/usync/v17/usync.once
-          lftp -u "${SFTP_USERNAME},${SFTP_PASSWORD}" ftp://${SFTP_HOST} -e "set ftp:ssl-force true; put './temp/usync/v17/usync.once' -o '${WEBSITE_ROOT}/uSync/v17/usync.once'; rm '${WEBSITE_ROOT}/app_offline.htm'"
-          echo "::endgroup::"
-      
   e2e_tests:
     runs-on: ubuntu-latest
     needs: deploy # This ensures this job runs only after the 'deploy' job completes successfully
