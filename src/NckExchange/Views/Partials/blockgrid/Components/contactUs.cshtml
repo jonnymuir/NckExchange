@@ -103,11 +103,35 @@
                 } else {
                     let errorMessage = data.message || 'An unexpected error occurred.';
                     if (data.errors) {
-                        // Display specific validation errors if available
                         for (const key in data.errors) {
-                            if (data.errors.hasOwnProperty(key)) {
-                                const errorMessages = data.errors[key].errors.map(err => err.errorMessage).join(', ');
-                                errorMessage += `\n${key}: ${errorMessages}`;
+                            if (!Object.prototype.hasOwnProperty.call(data.errors, key)) {
+                                continue;
+                            }
+
+                            const entry = data.errors[key];
+                            let errorMessages = [];
+
+                            if (Array.isArray(entry)) {
+                                errorMessages = entry.map(err => {
+                                    if (typeof err === 'string') return err;
+                                    return err?.errorMessage || err?.message || 'Validation error';
+                                });
+                            } else if (entry && Array.isArray(entry.errors)) {
+                                errorMessages = entry.errors.map(err => {
+                                    if (typeof err === 'string') return err;
+                                    return err?.errorMessage || err?.message || 'Validation error';
+                                });
+                            } else if (typeof entry === 'string') {
+                                errorMessages = [entry];
+                            } else if (entry && typeof entry === 'object') {
+                                const possibleMessage = entry.errorMessage || entry.message;
+                                if (possibleMessage) {
+                                    errorMessages = [possibleMessage];
+                                }
+                            }
+
+                            if (errorMessages.length > 0) {
+                                errorMessage += `\n${key}: ${errorMessages.join(', ')}`;
                             }
                         }
                     }
