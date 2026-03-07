@@ -67,6 +67,7 @@ jobs:
       - name: Create appsettings.json for Production
         env:
           UMBRACO_DB_DSN: ${{ secrets.UMBRACO_DB_DSN }}
+          UMBRACO_DB_DSN_PROVIDER_NAME: ${{ secrets.UMBRACO_DB_DSN_PROVIDER_NAME }}
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           GOOGLE_CLIENTID: ${{ secrets.GOOGLE_CLIENTID }}
@@ -78,6 +79,7 @@ jobs:
           # The DSN and SMTP credentials are now passed via environment variables.
           jq \
             --arg dsn "$UMBRACO_DB_DSN" \
+            --arg providerName "$UMBRACO_DB_DSN_PROVIDER_NAME" \
             --arg smtpUsername "$SMTP_USERNAME" \
             --arg smtpPassword "$SMTP_PASSWORD" \
             --arg googleClientID "$GOOGLE_CLIENTID" \
@@ -86,7 +88,7 @@ jobs:
             --arg recaptchaSecretKey "$RECAPCHA_SECRETKEY" \
             '.ConnectionStrings = {
                 "umbracoDbDSN": $dsn,
-                "umbracoDbDSN_ProviderName": "Microsoft.Data.SqlClient"
+                "umbracoDbDSN_ProviderName": $providerName
             } |
             .Umbraco.CMS.Global.Smtp = {
                 "Host": "smtp.livemail.co.uk",
