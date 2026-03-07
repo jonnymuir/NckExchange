@@ -492,3 +492,6 @@ Handfire.db-wal
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+src/NckExchange/Hangfire.db-shm
+.gitignore
+src/NckExchange/Hangfire.db-wal
