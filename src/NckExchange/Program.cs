@@ -5,6 +5,7 @@ using Umbraco.Cms.Core;
 using NckExchange.ExternalUserLogin.GoogleAuthentication;
 using Umbraco.Cms.Api.Management.Security;
 using Umbraco.Cms.Core.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -61,7 +62,19 @@ else
 umbracoBuilder.AddMembersIdentity();
 umbracoBuilder.Build();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Cloudflare Tunnel operates on a private network; 
+    // we clear these to allow headers from the tunnel connector.
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+
 WebApplication app = builder.Build();
+
+app.UseForwardedHeaders();
 await app.BootUmbracoAsync();
 
 {
